@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Flash · Reportar incidencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#FBFAF2;--ink:#302d1a;--muted:#5c5833;--line:#E4E0C4;--field:#8a8559;--yellow:#fcea51;--yellow-b:#d9c63a;--beige:#E7E3C9;--soft:#F4F2E2;--err:#9b2c1f}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:#F1EFDC;color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}
+.app{max-width:440px;min-height:100vh;margin:0 auto;background:var(--bg);display:flex;flex-direction:column}
+@media(min-width:480px){.app{box-shadow:0 0 0 1px var(--line)}}
+.top{display:flex;align-items:center;justify-content:space-between;height:64px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line)}
+.logo{display:block;width:132px;height:auto}
+.chip{padding:8px 12px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:13px;line-height:16px;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{flex:1}
+.screen{display:flex;flex-direction:column;gap:20px;padding:24px 20px max(32px,env(safe-area-inset-bottom))}
+h1{margin:0;font-size:26px;line-height:32px;font-weight:800}
+.lead{margin:0;font-size:14px;line-height:20px;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.row{display:flex;gap:12px}
+label,.lbl{font-size:14px;line-height:20px;font-weight:600}
+input[type=text],input[type=email],textarea{width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1.5px solid var(--field);border-radius:12px}
+input[type=text],input[type=email]{height:52px;padding:0 16px}
+textarea{height:84px;padding:12px 16px;line-height:22px;resize:none}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+input[aria-invalid=true]{border-color:var(--err)}
+.err{font-size:13px;line-height:18px;color:var(--err);font-weight:600}
+.hint{font-size:13px;line-height:18px;color:var(--muted)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;text-align:center;background:#fff;border:1.5px dashed var(--field);border-radius:16px}
+.drop.over{background:var(--soft);border-color:var(--ink)}
+.drop strong{display:flex;align-items:center;gap:8px;font-size:15px;line-height:20px}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;height:56px;border-radius:14px;font-family:inherit;font-size:16px;font-weight:700;color:var(--ink);cursor:pointer}
+.btn.main{background:var(--yellow);border:1.5px solid var(--ink)}
+.btn.alt{background:transparent;border:1.5px solid var(--ink)}
+.btn.small{width:auto;height:44px;padding:0 20px;margin-top:6px;font-size:14px;font-weight:600;border-radius:12px;background:var(--bg)}
+.file{display:flex;align-items:center;gap:12px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.file img{width:44px;height:44px;flex:none;object-fit:cover;border-radius:8px;background:var(--beige)}
+.file .meta{flex:1;min-width:0;display:flex;flex-direction:column}
+.file .nm{font-size:14px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file .sz{font-size:13px;line-height:18px;color:var(--muted)}
+.x{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;padding:0;background:transparent;border:0;border-radius:12px;cursor:pointer}
+.proto{display:flex;flex-direction:column;gap:10px;padding:14px;border:1.5px dashed var(--field);border-radius:16px;background:var(--soft)}
+.proto .tag{font-size:12px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+.opts{display:flex;flex-direction:column;gap:8px;border:0;margin:0;padding:0}
+.opt{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;background:#fff;border:1.5px solid var(--field);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+.opt:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.opt:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:2px}
+.opt input{width:18px;height:18px;margin:0;accent-color:var(--yellow)}
+.center{align-items:center;text-align:center;padding-top:72px}
+.spin{width:48px;height:48px;border:4px solid var(--beige);border-top-color:var(--ink);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.badge{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:999px}
+.badge.ok{background:var(--yellow);border:1.5px solid var(--ink)}
+.badge.no{background:var(--beige);border:1.5px dashed var(--field)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.card{display:flex;flex-direction:column;padding:0 16px;background:#fff;border:1px solid var(--line);border-radius:16px}
+.kv{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:14px;color:var(--muted)}
+.kv .v{font-size:15px;font-weight:700;text-align:right;overflow-wrap:anywhere}
+.pill{padding:6px 12px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:13px;line-height:16px;font-weight:700}
+.notice{padding:10px 12px;border-radius:12px;background:var(--beige);font-size:14px;line-height:20px;font-weight:600}
+.sec{margin:8px 0 0;font-size:12px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+.tg{background:#F1EFDC;border-radius:16px;padding:12px}
+.msg{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:#fff;border-radius:16px}
+.msg .who{font-size:13px;line-height:18px;font-weight:700;color:#6b6740}
+.msg .t{display:flex;align-items:center;justify-content:space-between}
+.msg .tt{font-size:16px;line-height:24px;font-weight:800}
+.msg p{margin:0;font-size:14px;line-height:20px}
+.msg .mu{color:var(--muted)}
+.mention{font-weight:700;background:var(--yellow);padding:0 4px;border-radius:4px}
+.ctx{padding:12px 20px max(16px,env(safe-area-inset-bottom));font-size:12px;line-height:18px;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+<img class="logo" src="data:image/png;base64,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" alt="Flash by Cripten" width="132" height="27">
+<div class="chip" id="chip">Merchant · DEMO</div>
+</header>
+
+<main>
+<!-- Pantalla 1: formulario -->
+<section class="screen" id="s-form">
+<div class="stack" style="gap:8px">
+<h1>Reportar incidencia</h1>
+<p class="lead">Complete los datos de la transacción. Le responderemos en el grupo de <span id="mname">DEMO</span>.</p>
+</div>
+
+<form id="f" novalidate class="screen" style="padding:0;gap:20px">
+<div class="field">
+<label for="txn">Número de transacción (TXN_ID)</label>
+<input id="txn" type="text" inputmode="numeric" autocomplete="off" aria-describedby="txn-e">
+<div class="err" id="txn-e" hidden>Ingrese el número de transacción.</div>
+</div>
+
+<div class="row">
+<div class="field" style="flex:0 0 140px">
+<label for="amt">Monto (ARS)</label>
+<input id="amt" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amt-e">
+<div class="err" id="amt-e" hidden>Ingrese el monto.</div>
+</div>
+<div class="field" style="flex:1">
+<label for="mail">Correo del usuario</label>
+<input id="mail" type="email" inputmode="email" autocomplete="off" placeholder="Opcional">
+</div>
+</div>
+
+<div class="field">
+<label for="cmt">Comentario (opcional)</label>
+<textarea id="cmt" placeholder="Describa brevemente el inconveniente"></textarea>
+</div>
+
+<div class="field" role="group" aria-labelledby="cl">
+<div class="lbl" id="cl">Comprobante de pago</div>
+<div class="drop" id="drop">
+<strong>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+Pegue el comprobante con Ctrl+V
+</strong>
+<div class="hint">o arrástrelo aquí</div>
+<button type="button" class="btn small" id="pick" style="border:1.5px solid var(--ink)">Seleccionar imagen</button>
+<input id="file" type="file" accept="image/*" hidden>
+</div>
+<div class="err" id="file-e" hidden></div>
+<div class="file" id="filebox" hidden>
+<img id="thumb" alt="Vista previa del comprobante">
+<div class="meta"><div class="nm" id="fname"></div><div class="sz" id="fsize"></div></div>
+<button type="button" class="x" id="rm" aria-label="Quitar comprobante">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+</button>
+</div>
+</div>
+
+<div class="stack" style="gap:8px">
+<button type="submit" class="btn main">Enviar incidencia</button>
+<div class="hint" style="text-align:center">Validaremos el comprobante antes de crear el ticket.</div>
+</div>
+</form>
+
+<div class="proto">
+<div class="tag">PROTOTIPO · LOS DATOS NO SE ENVÍAN A NINGÚN LADO</div>
+<fieldset class="opts">
+<legend class="lbl" style="padding:0;margin-bottom:8px">Resultado simulado</legend>
+<label class="opt"><input type="radio" name="sim" value="ok" checked> Ticket creado (en proceso)</label>
+<label class="opt"><input type="radio" name="sim" value="cbu"> El CBU destinatario no es de Flash</label>
+<label class="opt"><input type="radio" name="sim" value="dup"> Ya existe un ticket con ese TXN_ID</label>
+</fieldset>
+</div>
+</section>
+
+<!-- Pantalla 2: verificando -->
+<section class="screen center" id="s-load" hidden>
+<div class="spin" aria-hidden="true"></div>
+<div role="status" aria-live="polite" class="stack" style="gap:8px">
+<h1>Verificando comprobante</h1>
+<p class="lead">Esto puede tardar unos segundos.</p>
+</div>
+</section>
+
+<!-- Pantalla 3: resultado -->
+<section class="screen" id="s-res" hidden>
+<div class="stack">
+<div class="badge ok" id="b-ok"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></div>
+<div class="badge no" id="b-no" hidden><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+<h1 id="r-title" tabindex="-1" style="margin-top:8px"></h1>
+<p class="lead" id="r-text" style="font-size:15px;line-height:22px"></p>
+</div>
+
+<div class="stack" id="r-card-wrap">
+<div class="notice" id="r-dup" hidden></div>
+<div class="card">
+<div class="kv"><span class="k">Ticket</span><span class="v" id="r-tk"></span></div>
+<div class="kv"><span class="k">TXN_ID</span><span class="v" id="r-txn"></span></div>
+<div class="kv"><span class="k">Monto</span><span class="v" id="r-amt"></span></div>
+<div class="kv" id="r-cmp-row"><span class="k">Comprobante</span><span class="v" id="r-cmp"></span></div>
+<div class="kv"><span class="k">Estado</span><span class="pill">En proceso</span></div>
+</div>
+</div>
+
+<div class="stack">
+<button type="button" class="btn main" id="close">Cerrar</button>
+<button type="button" class="btn alt" id="again">Reportar otra incidencia</button>
+</div>
+
+<div class="stack">
+<div class="sec">EN EL GRUPO</div>
+<div class="tg" id="g-card">
+<div class="msg">
+<span class="who">criptenbot</span>
+<div class="t"><span class="tt" id="g-tk"></span><span class="pill">En proceso</span></div>
+<p>Se está procesando esta transacción.</p>
+<p id="g-line"></p>
+<p class="mu">Reportó: <span class="mention" id="g-who"></span></p>
+</div>
+</div>
+<div class="hint" id="g-note" hidden></div>
+</div>
+</section>
+</main>
+
+<footer class="ctx" id="ctx"></footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  var inTg = !!(tg && tg.initData);
+
+  try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
+  try { if (tg && tg.setHeaderColor) tg.setHeaderColor('#ffffff'); } catch (e) {}
+
+  // Contexto: de dónde viene el merchant
+  var qs = new URLSearchParams(location.search);
+  var hs = new URLSearchParams(location.hash.slice(1));
+  var unsafe = (tg && tg.initDataUnsafe) || {};
+  var user = unsafe.user || null;
+  var param = unsafe.start_param || hs.get('tgWebAppStartParam') || qs.get('merchant') || qs.get('startapp') || '';
+  var merchant = param ? param.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
+  var handle = user ? (user.username ? '@' + user.username : (user.first_name || 'usuario')) : '@usuario';
+
+  $('#chip').textContent = 'Merchant · ' + merchant;
+  $('#mname').textContent = merchant;
+  $('#ctx').textContent = 'Contexto detectado: ' + (inTg ? 'Telegram' : 'navegador') +
+    ' · startapp: ' + (param || 'sin valor') +
+    ' · usuario: ' + (user ? handle : 'sin datos') +
+    ' · chat: ' + (unsafe.chat_type || 'sin datos');
+
+  // Comprobante: adjuntar, pegar y arrastrar
+  var file = null, thumbUrl = null;
+  var fileInput = $('#file'), drop = $('#drop');
+
+  function fileError(msg) { var e = $('#file-e'); e.textContent = msg || ''; e.hidden = !msg; }
+  function setFile(f) {
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { fileError('Seleccione una imagen (PNG o JPG).'); return; }
+    fileError('');
+    if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+    file = f; thumbUrl = URL.createObjectURL(f);
+    $('#thumb').src = thumbUrl;
+    $('#fname').textContent = f.name || 'comprobante.png';
+    var kb = f.size / 1024;
+    $('#fsize').textContent = kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB';
+    $('#filebox').hidden = false;
+  }
+  function clearFile() {
+    file = null; fileInput.value = '';
+    if (thumbUrl) URL.revokeObjectURL(thumbUrl); thumbUrl = null;
+    $('#filebox').hidden = true; fileError('');
+  }
+  $('#pick').addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () { setFile(fileInput.files[0]); });
+  $('#rm').addEventListener('click', clearFile);
+
+  document.addEventListener('paste', function (e) {
+    var cd = e.clipboardData; if (!cd) return;
+    var f = cd.files && cd.files[0];
+    if (!f && cd.items) for (var i = 0; i < cd.items.length; i++) { if (cd.items[i].kind === 'file') { f = cd.items[i].getAsFile(); break; } }
+    if (f && /^image\//.test(f.type)) { e.preventDefault(); setFile(f); }
+  });
+  ['dragover', 'drop'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }); });
+  drop.addEventListener('dragover', function () { drop.classList.add('over'); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+  drop.addEventListener('drop', function (e) {
+    drop.classList.remove('over');
+    if (e.dataTransfer && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  // Pantallas
+  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res') };
+  function show(name) {
+    Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
+    window.scrollTo(0, 0);
+  }
+
+  function fmtAmount(raw) {
+    var n = parseFloat(String(raw).replace(/\./g, '').replace(',', '.'));
+    return isNaN(n) ? raw : n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+  }
+
+  function setInvalid(input, errEl, bad) {
+    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    errEl.hidden = !bad;
+  }
+
+  ['txn', 'amt'].forEach(function (id) {
+    $('#' + id).addEventListener('input', function () { setInvalid(this, $('#' + id + '-e'), false); });
+  });
+
+  $('#f').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var txn = $('#txn'), amt = $('#amt');
+    var badT = !txn.value.trim(), badA = !amt.value.trim();
+    setInvalid(txn, $('#txn-e'), badT);
+    setInvalid(amt, $('#amt-e'), badA);
+    if (badT) { txn.focus(); return; }
+    if (badA) { amt.focus(); return; }
+
+    var data = { txn: txn.value.trim(), amt: fmtAmount(amt.value.trim()) + ' ARS' };
+    var sim = $('input[name=sim]:checked').value;
+    show('load');
+    setTimeout(function () { render(sim, data); }, 1400);
+  });
+
+  function render(sim, d) {
+    var ok = sim !== 'cbu';
+    var tk = '#' + (100 + Math.floor(Math.random() * 900));
+    $('#b-ok').hidden = !ok; $('#b-no').hidden = ok;
+    $('#r-card-wrap').hidden = !ok;
+    $('#g-card').hidden = sim !== 'ok';
+    $('#r-dup').hidden = sim !== 'dup';
+    $('#close').textContent = 'Cerrar';
+
+    if (sim === 'cbu') {
+      $('#r-title').textContent = 'El comprobante no corresponde a Flash';
+      $('#r-text').textContent = 'El CBU destinatario del comprobante no pertenece a Flash, por lo que no se generó ningún ticket. Verifique que haya adjuntado el comprobante correcto e inténtelo nuevamente.';
+      $('#again').textContent = 'Cambiar comprobante';
+      $('#g-note').textContent = 'No se crea ticket ni se publica nada en el grupo.';
+      $('#g-note').hidden = false;
+    } else {
+      $('#again').textContent = 'Reportar otra incidencia';
+      $('#r-tk').textContent = tk; $('#r-txn').textContent = d.txn; $('#r-amt').textContent = d.amt;
+      $('#r-cmp').textContent = file ? 'Recibido' : 'Sin adjunto';
+      $('#g-tk').textContent = 'Ticket ' + tk;
+      $('#g-line').textContent = 'TXN ' + d.txn + ' · ' + d.amt;
+      $('#g-who').textContent = handle;
+      if (sim === 'ok') {
+        $('#r-title').textContent = 'Recibimos su incidencia';
+        $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchant + ' y allí le avisaremos cuando esté resuelta.';
+        $('#g-note').hidden = true;
+      } else {
+        $('#r-title').textContent = 'Esta incidencia ya está en curso';
+        $('#r-text').textContent = 'Le avisaremos en el grupo de ' + merchant + ' cuando esté resuelta.';
+        $('#r-dup').textContent = 'Ya existía un ticket abierto para la transacción ' + d.txn + '. No se creó uno nuevo.';
+        $('#g-note').textContent = 'No se publica una tarjeta nueva: se mantiene la del ticket original en el grupo.';
+        $('#g-note').hidden = false;
+      }
+    }
+    show('res');
+    $('#r-title').focus({ preventScroll: true });
+  }
+
+  function reset() {
+    $('#f').reset(); clearFile();
+    setInvalid($('#txn'), $('#txn-e'), false); setInvalid($('#amt'), $('#amt-e'), false);
+    show('form');
+  }
+  $('#again').addEventListener('click', function () {
+    // Si el comprobante fue rechazado, se conservan los datos para cambiar solo el comprobante.
+    if ($('#b-no').hidden) reset(); else { clearFile(); show('form'); }
+  });
+  $('#close').addEventListener('click', function () {
+    if (inTg) { try { tg.close(); return; } catch (e) {} }
+    reset();
+  });
+})();
+</script>
+</body>
+</html>
