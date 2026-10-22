@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Flash · Reportar incidencia</title>
+<title>Flash · Incidencias</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,8 +20,12 @@ body{margin:0;background:#F1EFDC;color:var(--ink);font-family:'Plus Jakarta Sans
 .logo{display:block;width:132px;height:auto}
 .chip{padding:8px 12px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:13px;line-height:16px;font-weight:700;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 main{flex:1}
+.tabs{display:flex;gap:8px;padding:12px 20px 0}
+.tabs button{flex:1;height:48px;padding:0 8px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink);background:transparent;border:1.5px solid var(--ink);cursor:pointer}
+.tabs button[aria-current=page]{background:var(--ink);color:var(--bg)}
 .screen{display:flex;flex-direction:column;gap:20px;padding:24px 20px max(32px,env(safe-area-inset-bottom))}
 h1{margin:0;font-size:26px;line-height:32px;font-weight:800}
+.h2{margin:0;font-size:20px;line-height:26px;font-weight:800}
 .lead{margin:0;font-size:14px;line-height:20px;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:8px;min-width:0}
 .row{display:flex;gap:12px}
@@ -49,14 +53,16 @@ input[aria-invalid=true]{border-color:var(--err)}
 .proto{display:flex;flex-direction:column;gap:10px;padding:14px;border:1.5px dashed var(--field);border-radius:16px;background:var(--soft)}
 .proto .tag{font-size:12px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
 .opts{display:flex;flex-direction:column;gap:8px;border:0;margin:0;padding:0}
-.opt{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;background:#fff;border:1.5px solid var(--field);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+.opt,.chipb{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;background:#fff;border:1.5px solid var(--field);border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer}
 .opt:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .opt:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:2px}
 .opt input{width:18px;height:18px;margin:0;accent-color:var(--yellow)}
 .center{align-items:center;text-align:center;padding-top:72px}
 .spin{width:48px;height:48px;border:4px solid var(--beige);border-top-color:var(--ink);border-radius:50%;animation:spin .9s linear infinite}
+.spin.sm{width:24px;height:24px;border-width:3px;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.inl{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;color:var(--muted)}
 .badge{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:999px}
 .badge.ok{background:var(--yellow);border:1.5px solid var(--ink)}
 .badge.no{background:var(--beige);border:1.5px dashed var(--field)}
@@ -66,10 +72,13 @@ input[aria-invalid=true]{border-color:var(--err)}
 .kv:last-child{border-bottom:0}
 .kv .k{font-size:14px;color:var(--muted)}
 .kv .v{font-size:15px;font-weight:700;text-align:right;overflow-wrap:anywhere}
-.pill{padding:6px 12px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:13px;line-height:16px;font-weight:700}
+.pill{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:13px;line-height:16px;font-weight:700;white-space:nowrap}
+.pill.st-recibida{background:var(--beige);border-color:var(--field)}
+.pill.st-resuelta{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .notice{padding:10px 12px;border-radius:12px;background:var(--beige);font-size:14px;line-height:20px;font-weight:600}
 .sec{margin:8px 0 0;font-size:12px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
-.tg{background:#F1EFDC;border-radius:16px;padding:12px}
+.tg{display:flex;flex-direction:column;gap:6px;background:#F1EFDC;border-radius:16px;padding:12px}
+.tgbtn{height:44px;border-radius:10px;border:0;background:rgba(48,45,26,.1);color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .msg{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:#fff;border-radius:16px}
 .msg .who{font-size:13px;line-height:18px;font-weight:700;color:#6b6740}
 .msg .t{display:flex;align-items:center;justify-content:space-between}
@@ -77,6 +86,22 @@ input[aria-invalid=true]{border-color:var(--err)}
 .msg p{margin:0;font-size:14px;line-height:20px}
 .msg .mu{color:var(--muted)}
 .mention{font-weight:700;background:var(--yellow);padding:0 4px;border-radius:4px}
+.steps{display:flex;list-style:none;margin:0;padding:12px 0 0}
+.steps li{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;line-height:16px;font-weight:600;color:var(--muted);text-align:center}
+.steps li::before{content:"";position:absolute;top:10px;right:50%;width:100%;height:2px;background:var(--beige)}
+.steps li:first-child::before{display:none}
+.steps .dot{position:relative;z-index:1;width:22px;height:22px;border-radius:50%;background:var(--beige);border:2px solid var(--beige)}
+.steps li.done,.steps li.cur{color:var(--ink)}
+.steps li.done::before,.steps li.cur::before{background:var(--ink)}
+.steps li.done .dot{background:var(--ink);border-color:var(--ink)}
+.steps li.cur .dot{background:var(--yellow);border-color:var(--ink)}
+.resp{padding:12px 14px;border-radius:12px;background:var(--soft);border:1px solid var(--line)}
+.resp p{margin:0;font-size:15px;line-height:22px}
+.rowb{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:64px;padding:0;background:transparent;border:0;border-bottom:1px solid var(--line);font-family:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.rowb:last-child{border-bottom:0}
+.rl{display:flex;flex-direction:column;min-width:0}
+.ra{font-size:15px;line-height:20px;font-weight:700}
+.rb2{font-size:13px;line-height:18px;color:var(--muted)}
 .ctx{padding:12px 20px max(16px,env(safe-area-inset-bottom));font-size:12px;line-height:18px;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
 </style>
 </head>
@@ -88,6 +113,11 @@ input[aria-invalid=true]{border-color:var(--err)}
 </header>
 
 <main>
+<nav class="tabs" id="tabs" aria-label="Secciones">
+<button type="button" id="t-form" aria-current="page">Reportar incidencia</button>
+<button type="button" id="t-status">Consultar estado</button>
+</nav>
+
 <!-- Pantalla 1: formulario -->
 <section class="screen" id="s-form">
 <div class="stack" style="gap:8px">
@@ -166,7 +196,7 @@ Pegue el comprobante con Ctrl+V
 </div>
 </section>
 
-<!-- Pantalla 3: resultado -->
+<!-- Pantalla 3: resultado del reporte -->
 <section class="screen" id="s-res" hidden>
 <div class="stack">
 <div class="badge ok" id="b-ok"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></div>
@@ -201,8 +231,74 @@ Pegue el comprobante con Ctrl+V
 <p id="g-line"></p>
 <p class="mu">Reportó: <span class="mention" id="g-who"></span></p>
 </div>
+<button type="button" class="tgbtn" id="g-btn">Ver estado</button>
 </div>
 <div class="hint" id="g-note" hidden></div>
+</div>
+</section>
+
+<!-- Pantalla 4: consultar estado -->
+<section class="screen" id="s-status" hidden>
+<div class="stack" style="gap:8px">
+<h1>Consultar estado</h1>
+<p class="lead">Ingrese el número de transacción para ver cómo avanza su incidencia en <span id="mname2">DEMO</span>.</p>
+</div>
+
+<form id="qf" novalidate class="stack">
+<div class="field">
+<label for="q">Número de transacción (TXN_ID)</label>
+<input id="q" type="text" inputmode="numeric" autocomplete="off" aria-describedby="q-e">
+<div class="err" id="q-e" hidden>Ingrese el número de transacción.</div>
+</div>
+<button type="submit" class="btn main">Consultar</button>
+</form>
+
+<div class="stack" id="st-res" aria-live="polite">
+<div class="inl" id="st-load" hidden><div class="spin sm" aria-hidden="true"></div><span>Consultando…</span></div>
+
+<div class="stack" id="st-found" hidden>
+<h2 class="h2" id="st-title"></h2>
+<ol class="steps" id="st-steps" aria-label="Avance de la incidencia">
+<li><span class="dot" aria-hidden="true"></span>Recibida</li>
+<li><span class="dot" aria-hidden="true"></span>En análisis</li>
+<li><span class="dot" aria-hidden="true"></span>Resuelta</li>
+</ol>
+<p class="lead" id="st-text" style="font-size:15px;line-height:22px"></p>
+<div class="card">
+<div class="kv"><span class="k">Ticket</span><span class="v" id="st-tk"></span></div>
+<div class="kv"><span class="k">TXN_ID</span><span class="v" id="st-txn"></span></div>
+<div class="kv"><span class="k">Monto</span><span class="v" id="st-amt"></span></div>
+<div class="kv"><span class="k">Última actualización</span><span class="v" id="st-up"></span></div>
+<div class="kv"><span class="k">Estado</span><span class="pill" id="st-pill"></span></div>
+</div>
+<div class="resp" id="st-resp" hidden>
+<div class="sec" style="margin:0 0 6px">RESPUESTA DE SOPORTE</div>
+<p>[Respuesta de Soporte cargada en Monday]</p>
+</div>
+</div>
+
+<div class="stack" id="st-none" hidden>
+<div class="badge no"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
+<h2 class="h2">No encontramos un reporte</h2>
+<p class="lead" style="font-size:15px;line-height:22px">No hay una incidencia registrada para la transacción <b id="none-txn"></b>. Verifique el número; si todavía no la reportó, puede hacerlo ahora.</p>
+<button type="button" class="btn alt" id="none-go">Reportar esta transacción</button>
+</div>
+</div>
+
+<div class="stack" id="open-wrap" hidden>
+<div class="sec">INCIDENCIAS ABIERTAS</div>
+<div class="card" id="open-list"></div>
+</div>
+
+<div class="proto">
+<div class="tag">PROTOTIPO · DATOS DE EJEMPLO</div>
+<div class="hint">Toque un ejemplo para consultarlo. Las incidencias que cree en la pestaña «Reportar incidencia» también se pueden consultar aquí.</div>
+<div class="opts">
+<button type="button" class="chipb" data-txn="191717824">191717824 · En análisis</button>
+<button type="button" class="chipb" data-txn="1402288">1402288 · Recibida</button>
+<button type="button" class="chipb" data-txn="1399352">1399352 · Resuelta</button>
+<button type="button" class="chipb" data-txn="555000">555000 · Sin reporte</button>
+</div>
 </div>
 </section>
 </main>
@@ -213,29 +309,68 @@ Pegue el comprobante con Ctrl+V
 <script>
 (function () {
   var $ = function (s) { return document.querySelector(s); };
+  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
+  var norm = function (s) { return String(s || '').replace(/\s+/g, ''); };
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var inTg = !!(tg && tg.initData);
 
   try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
   try { if (tg && tg.setHeaderColor) tg.setHeaderColor('#ffffff'); } catch (e) {}
 
-  // Contexto: de dónde viene el merchant
+  // Contexto: merchant y, opcionalmente, un TXN para abrir la consulta directo (startapp=merchant_123456)
   var qs = new URLSearchParams(location.search);
   var hs = new URLSearchParams(location.hash.slice(1));
   var unsafe = (tg && tg.initDataUnsafe) || {};
   var user = unsafe.user || null;
   var param = unsafe.start_param || hs.get('tgWebAppStartParam') || qs.get('merchant') || qs.get('startapp') || '';
-  var merchant = param ? param.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
+  var pm = param.match(/^(.*)_(\d{4,})$/);
+  var deepTxn = pm ? pm[2] : '';
+  var code = pm ? pm[1] : param;
+  var merchant = code ? code.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
   var handle = user ? (user.username ? '@' + user.username : (user.first_name || 'usuario')) : '@usuario';
 
   $('#chip').textContent = 'Merchant · ' + merchant;
   $('#mname').textContent = merchant;
+  $('#mname2').textContent = merchant;
   $('#ctx').textContent = 'Contexto detectado: ' + (inTg ? 'Telegram' : 'navegador') +
     ' · startapp: ' + (param || 'sin valor') +
     ' · usuario: ' + (user ? handle : 'sin datos') +
     ' · chat: ' + (unsafe.chat_type || 'sin datos');
 
-  // Comprobante: adjuntar, pegar y arrastrar
+  // ---------- Datos de ejemplo para la consulta (en producción vienen de Supabase) ----------
+  var db = Object.create(null);
+  db['191717824'] = { tk: '#123', amt: '60.000 ARS', st: 'analisis', up: 'Hoy · 09:52' };
+  db['1402288'] = { tk: '#125', amt: '25.000 ARS', st: 'recibida', up: 'Hoy · 10:05' };
+  db['1399352'] = { tk: '#118', amt: '10.000 ARS', st: 'resuelta', up: 'Ayer · 17:40' };
+  var order = ['191717824', '1402288', '1399352'];
+  var ST = {
+    recibida: { pill: 'Recibida', title: 'Transacción recibida', idx: 0,
+      text: 'Su incidencia fue recibida y está en espera de revisión.' },
+    analisis: { pill: 'En análisis', title: 'Transacción en análisis', idx: 1,
+      text: 'Soporte está revisando la transacción. Le avisaremos en el grupo de ' + merchant + ' cuando esté resuelta.' },
+    resuelta: { pill: 'Resuelta', title: 'Transacción resuelta', idx: 2,
+      text: 'Su incidencia fue resuelta.' }
+  };
+
+  // ---------- Pantallas y pestañas ----------
+  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res'), status: $('#s-status') };
+  function show(name) {
+    Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
+    var tabsOn = name === 'form' || name === 'status';
+    $('#tabs').hidden = !tabsOn;
+    if (name === 'form') { $('#t-form').setAttribute('aria-current', 'page'); $('#t-status').removeAttribute('aria-current'); }
+    if (name === 'status') { $('#t-status').setAttribute('aria-current', 'page'); $('#t-form').removeAttribute('aria-current'); renderOpen(); }
+    window.scrollTo(0, 0);
+  }
+  $('#t-form').addEventListener('click', function () { show('form'); });
+  $('#t-status').addEventListener('click', function () { show('status'); });
+
+  function setInvalid(input, errEl, bad) {
+    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+    errEl.hidden = !bad;
+  }
+
+  // ---------- Comprobante: adjuntar, pegar y arrastrar ----------
   var file = null, thumbUrl = null;
   var fileInput = $('#file'), drop = $('#drop');
 
@@ -262,6 +397,7 @@ Pegue el comprobante con Ctrl+V
   $('#rm').addEventListener('click', clearFile);
 
   document.addEventListener('paste', function (e) {
+    if (screens.form.hidden) return;
     var cd = e.clipboardData; if (!cd) return;
     var f = cd.files && cd.files[0];
     if (!f && cd.items) for (var i = 0; i < cd.items.length; i++) { if (cd.items[i].kind === 'file') { f = cd.items[i].getAsFile(); break; } }
@@ -275,37 +411,28 @@ Pegue el comprobante con Ctrl+V
     if (e.dataTransfer && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
   });
 
-  // Pantallas
-  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res') };
-  function show(name) {
-    Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
-    window.scrollTo(0, 0);
-  }
-
+  // ---------- Reportar ----------
   function fmtAmount(raw) {
     var n = parseFloat(String(raw).replace(/\./g, '').replace(',', '.'));
-    return isNaN(n) ? raw : n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
-  }
-
-  function setInvalid(input, errEl, bad) {
-    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-    errEl.hidden = !bad;
+    return isNaN(n) ? raw : n.toLocaleString('es-AR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
   }
 
   ['txn', 'amt'].forEach(function (id) {
     $('#' + id).addEventListener('input', function () { setInvalid(this, $('#' + id + '-e'), false); });
   });
 
+  var lastTxn = '';
+
   $('#f').addEventListener('submit', function (e) {
     e.preventDefault();
     var txn = $('#txn'), amt = $('#amt');
-    var badT = !txn.value.trim(), badA = !amt.value.trim();
+    var badT = !norm(txn.value), badA = !amt.value.trim();
     setInvalid(txn, $('#txn-e'), badT);
     setInvalid(amt, $('#amt-e'), badA);
     if (badT) { txn.focus(); return; }
     if (badA) { amt.focus(); return; }
 
-    var data = { txn: txn.value.trim(), amt: fmtAmount(amt.value.trim()) + ' ARS' };
+    var data = { txn: norm(txn.value), amt: fmtAmount(amt.value.trim()) + ' ARS' };
     var sim = $('input[name=sim]:checked').value;
     show('load');
     setTimeout(function () { render(sim, data); }, 1400);
@@ -333,10 +460,16 @@ Pegue el comprobante con Ctrl+V
       $('#g-tk').textContent = 'Ticket ' + tk;
       $('#g-line').textContent = 'TXN ' + d.txn + ' · ' + d.amt;
       $('#g-who').textContent = handle;
+      lastTxn = d.txn;
       if (sim === 'ok') {
         $('#r-title').textContent = 'Recibimos su incidencia';
         $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchant + ' y allí le avisaremos cuando esté resuelta.';
         $('#g-note').hidden = true;
+        if (!has(db, d.txn)) {
+          db[d.txn] = { tk: tk, amt: d.amt, st: 'recibida',
+            up: 'Hoy · ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) };
+          order.unshift(d.txn);
+        }
       } else {
         $('#r-title').textContent = 'Esta incidencia ya está en curso';
         $('#r-text').textContent = 'Le avisaremos en el grupo de ' + merchant + ' cuando esté resuelta.';
@@ -362,6 +495,81 @@ Pegue el comprobante con Ctrl+V
     if (inTg) { try { tg.close(); return; } catch (e) {} }
     reset();
   });
+  // El botón "Ver estado" de la tarjeta del grupo abre la consulta directo en ese ticket.
+  $('#g-btn').addEventListener('click', function () { show('status'); lookup(lastTxn); });
+
+  // ---------- Consultar estado ----------
+  var lookId = 0;
+
+  function renderOpen() {
+    var list = $('#open-list'); list.textContent = '';
+    var n = 0;
+    order.forEach(function (k) {
+      var r = db[k];
+      if (!r || r.st === 'resuelta') return;
+      n++;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'rowb';
+      var l = document.createElement('span'); l.className = 'rl';
+      var a = document.createElement('span'); a.className = 'ra'; a.textContent = 'TXN ' + k;
+      var c = document.createElement('span'); c.className = 'rb2'; c.textContent = r.amt + ' · ' + r.tk;
+      l.appendChild(a); l.appendChild(c);
+      var p = document.createElement('span'); p.className = 'pill st-' + r.st; p.textContent = ST[r.st].pill;
+      b.appendChild(l); b.appendChild(p);
+      b.addEventListener('click', function () { lookup(k); });
+      list.appendChild(b);
+    });
+    $('#open-wrap').hidden = n === 0;
+  }
+
+  function showFound(k, r) {
+    var s = ST[r.st];
+    $('#st-title').textContent = s.title;
+    $('#st-text').textContent = s.text;
+    $('#st-tk').textContent = r.tk; $('#st-txn').textContent = k;
+    $('#st-amt').textContent = r.amt; $('#st-up').textContent = r.up;
+    var pill = $('#st-pill'); pill.textContent = s.pill; pill.className = 'pill st-' + r.st;
+    $('#st-resp').hidden = r.st !== 'resuelta';
+    var lis = document.querySelectorAll('#st-steps li');
+    for (var i = 0; i < lis.length; i++) {
+      var done = r.st === 'resuelta' || i < s.idx;
+      var cur = r.st !== 'resuelta' && i === s.idx;
+      lis[i].className = done ? 'done' : (cur ? 'cur' : '');
+      if (cur) lis[i].setAttribute('aria-current', 'step'); else lis[i].removeAttribute('aria-current');
+    }
+    $('#st-found').hidden = false;
+  }
+
+  function lookup(raw) {
+    var k = norm(raw);
+    var q = $('#q'); q.value = k;
+    var bad = !k;
+    setInvalid(q, $('#q-e'), bad);
+    $('#st-found').hidden = true; $('#st-none').hidden = true;
+    if (bad) { $('#st-load').hidden = true; lookId++; q.focus(); return; }
+    var my = ++lookId;
+    $('#st-load').hidden = false;
+    setTimeout(function () {
+      if (my !== lookId) return;
+      $('#st-load').hidden = true;
+      if (has(db, k)) { showFound(k, db[k]); }
+      else { $('#none-txn').textContent = k; $('#st-none').hidden = false; }
+    }, 700);
+  }
+
+  $('#q').addEventListener('input', function () { setInvalid(this, $('#q-e'), false); });
+  $('#qf').addEventListener('submit', function (e) { e.preventDefault(); lookup($('#q').value); });
+  Array.prototype.forEach.call(document.querySelectorAll('.chipb'), function (b) {
+    b.addEventListener('click', function () { lookup(b.getAttribute('data-txn')); });
+  });
+  $('#none-go').addEventListener('click', function () {
+    $('#txn').value = $('#q').value;
+    setInvalid($('#txn'), $('#txn-e'), false);
+    show('form');
+    $('#amt').focus();
+  });
+
+  // Enlace directo: startapp=merchant_123456 abre la consulta de ese TXN.
+  if (deepTxn) { show('status'); lookup(deepTxn); }
 })();
 </script>
 </body>
