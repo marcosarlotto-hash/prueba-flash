@@ -103,6 +103,9 @@ input[aria-invalid=true]{border-color:var(--err)}
 .ra{font-size:15px;line-height:20px;font-weight:700}
 .rb2{font-size:13px;line-height:18px;color:var(--muted)}
 .ctx{padding:12px 20px max(16px,env(safe-area-inset-bottom));font-size:12px;line-height:18px;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
+select{width:100%;height:52px;padding:0 12px;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1.5px solid var(--field);border-radius:12px}
+select[aria-invalid=true]{border-color:var(--err)}
+select:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -113,43 +116,31 @@ input[aria-invalid=true]{border-color:var(--err)}
 </header>
 
 <main>
-<nav class="tabs" id="tabs" aria-label="Secciones">
-<button type="button" id="t-form" aria-current="page">Reportar incidencia</button>
-<button type="button" id="t-status">Consultar estado</button>
-</nav>
 
-<!-- Pantalla 1: formulario -->
+<!-- Pantalla 1: formulario (adaptable por merchant) -->
 <section class="screen" id="s-form">
 <div class="stack" style="gap:8px">
 <h1>Reportar incidencia</h1>
 <p class="lead">Complete los datos de la transacción. Le responderemos en el grupo de <span id="mname">DEMO</span>.</p>
 </div>
-
 <form id="f" novalidate class="screen" style="padding:0;gap:20px">
-<div class="field">
-<label for="txn">Número de transacción (TXN_ID)</label>
+<div class="field"><label for="txn">Número de transacción (TXN_ID)</label>
+<div class="hint" id="txn-h">Si no lo tiene, adjunte el comprobante de pago.</div>
 <input id="txn" type="text" inputmode="numeric" autocomplete="off" aria-describedby="txn-e">
-<div class="err" id="txn-e" hidden>Ingrese el número de transacción.</div>
-</div>
-
+<div class="err" id="txn-e" hidden>Ingrese el número de transacción.</div></div>
 <div class="row">
-<div class="field" style="flex:0 0 140px">
-<label for="amt">Monto (ARS)</label>
+<div class="field" id="amt-wrap" style="flex:0 0 140px"><label for="amt" id="amt-l">Monto (ARS)</label>
 <input id="amt" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amt-e">
-<div class="err" id="amt-e" hidden>Ingrese el monto.</div>
+<div class="err" id="amt-e" hidden>Ingrese un monto válido.</div></div>
+<div class="field" id="mail-wrap" style="flex:1"><label for="mail" id="mail-l">Correo del usuario (opcional)</label>
+<input id="mail" type="email" inputmode="email" autocomplete="off" aria-describedby="mail-e">
+<div class="err" id="mail-e" hidden>Ingrese un correo válido.</div></div>
 </div>
-<div class="field" style="flex:1">
-<label for="mail">Correo del usuario</label>
-<input id="mail" type="email" inputmode="email" autocomplete="off" placeholder="Opcional">
-</div>
-</div>
-
-<div class="field">
-<label for="cmt">Comentario (opcional)</label>
-<textarea id="cmt" placeholder="Describa brevemente el inconveniente"></textarea>
-</div>
-
-<div class="field" role="group" aria-labelledby="cl">
+<div class="field" id="cmt-wrap"><label for="cmt" id="cmt-l">Comentario (opcional)</label>
+<textarea id="cmt" placeholder="Describa brevemente el inconveniente" aria-describedby="cmt-e"></textarea>
+<div class="err" id="cmt-e" hidden>Ingrese un comentario.</div></div>
+<div class="stack" id="extra" style="gap:20px"></div>
+<div class="field" id="rc-wrap" role="group" aria-labelledby="cl">
 <div class="lbl" id="cl">Comprobante de pago</div>
 <div class="drop" id="drop">
 <strong>
@@ -170,13 +161,14 @@ Pegue el comprobante con Ctrl+V
 </div>
 </div>
 
+<div class="notice" id="f-err" role="alert" hidden></div>
 <div class="stack" style="gap:8px">
 <button type="submit" class="btn main">Enviar incidencia</button>
 <div class="hint" style="text-align:center">Validaremos el comprobante antes de crear el ticket.</div>
 </div>
 </form>
 
-<div class="proto">
+<div class="proto" id="proto">
 <div class="tag">PROTOTIPO · LOS DATOS NO SE ENVÍAN A NINGÚN LADO</div>
 <fieldset class="opts">
 <legend class="lbl" style="padding:0;margin-bottom:8px">Resultado simulado</legend>
@@ -221,7 +213,7 @@ Pegue el comprobante con Ctrl+V
 <button type="button" class="btn alt" id="again">Reportar otra incidencia</button>
 </div>
 
-<div class="stack">
+<div class="stack" id="g-wrap">
 <div class="sec">EN EL GRUPO</div>
 <div class="tg" id="g-card">
 <div class="msg">
@@ -231,153 +223,177 @@ Pegue el comprobante con Ctrl+V
 <p id="g-line"></p>
 <p class="mu">Reportó: <span class="mention" id="g-who"></span></p>
 </div>
-<button type="button" class="tgbtn" id="g-btn">Ver estado</button>
 </div>
 <div class="hint" id="g-note" hidden></div>
 </div>
 </section>
-
-<!-- Pantalla 4: consultar estado -->
-<section class="screen" id="s-status" hidden>
-<div class="stack" style="gap:8px">
-<h1>Consultar estado</h1>
-<p class="lead">Ingrese el número de transacción para ver cómo avanza su incidencia en <span id="mname2">DEMO</span>.</p>
-</div>
-
-<form id="qf" novalidate class="stack">
-<div class="field">
-<label for="q">Número de transacción (TXN_ID)</label>
-<input id="q" type="text" inputmode="numeric" autocomplete="off" aria-describedby="q-e">
-<div class="err" id="q-e" hidden>Ingrese el número de transacción.</div>
-</div>
-<button type="submit" class="btn main">Consultar</button>
-</form>
-
-<div class="stack" id="st-res" aria-live="polite">
-<div class="inl" id="st-load" hidden><div class="spin sm" aria-hidden="true"></div><span>Consultando…</span></div>
-
-<div class="stack" id="st-found" hidden>
-<h2 class="h2" id="st-title"></h2>
-<ol class="steps" id="st-steps" aria-label="Avance de la incidencia">
-<li><span class="dot" aria-hidden="true"></span>Recibida</li>
-<li><span class="dot" aria-hidden="true"></span>En análisis</li>
-<li><span class="dot" aria-hidden="true"></span>Resuelta</li>
-</ol>
-<p class="lead" id="st-text" style="font-size:15px;line-height:22px"></p>
-<div class="card">
-<div class="kv"><span class="k">Ticket</span><span class="v" id="st-tk"></span></div>
-<div class="kv"><span class="k">TXN_ID</span><span class="v" id="st-txn"></span></div>
-<div class="kv"><span class="k">Monto</span><span class="v" id="st-amt"></span></div>
-<div class="kv"><span class="k">Última actualización</span><span class="v" id="st-up"></span></div>
-<div class="kv"><span class="k">Estado</span><span class="pill" id="st-pill"></span></div>
-</div>
-<div class="resp" id="st-resp" hidden>
-<div class="sec" style="margin:0 0 6px">RESPUESTA DE SOPORTE</div>
-<p>[Respuesta de Soporte cargada en Monday]</p>
-</div>
-</div>
-
-<div class="stack" id="st-none" hidden>
-<div class="badge no"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
-<h2 class="h2">No encontramos un reporte</h2>
-<p class="lead" style="font-size:15px;line-height:22px">No hay una incidencia registrada para la transacción <b id="none-txn"></b>. Verifique el número; si todavía no la reportó, puede hacerlo ahora.</p>
-<button type="button" class="btn alt" id="none-go">Reportar esta transacción</button>
-</div>
-</div>
-
-<div class="stack" id="open-wrap" hidden>
-<div class="sec">INCIDENCIAS ABIERTAS</div>
-<div class="card" id="open-list"></div>
-</div>
-
-<div class="proto">
-<div class="tag">PROTOTIPO · DATOS DE EJEMPLO</div>
-<div class="hint">Toque un ejemplo para consultarlo. Las incidencias que cree en la pestaña «Reportar incidencia» también se pueden consultar aquí.</div>
-<div class="opts">
-<button type="button" class="chipb" data-txn="191717824">191717824 · En análisis</button>
-<button type="button" class="chipb" data-txn="1402288">1402288 · Recibida</button>
-<button type="button" class="chipb" data-txn="1399352">1399352 · Resuelta</button>
-<button type="button" class="chipb" data-txn="555000">555000 · Sin reporte</button>
-</div>
-</div>
-</section>
 </main>
-
 <footer class="ctx" id="ctx"></footer>
 </div>
-
 <script>
 (function () {
+  'use strict';
   var $ = function (s) { return document.querySelector(s); };
   var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
   var norm = function (s) { return String(s || '').replace(/\s+/g, ''); };
+
+  // =====================================================================
+  // CONFIGURACIÓN GENERAL  (lo único que se edita al pasar a producción)
+  // =====================================================================
+  var SETTINGS = {
+    // URL del webhook de n8n que recibe el ticket. Vacío = modo demostración (no envía nada).
+    ENDPOINT: 'https://cripten.app.n8n.cloud/webhook/incidencias-form',
+    // URL (GET) que devuelve la configuración del formulario de un merchant: ?code=<merchant>
+    // Vacío = usa DEMO_CONFIGS de abajo. Si falla o tarda, se usa el formulario base.
+    CONFIG_URL: '',
+    // Tamaño máximo del comprobante (MB)
+    MAX_MB: 8,
+    // Tiempo máximo de espera de n8n (ms)
+    TIMEOUT: 45000
+  };
+
+  // Configuraciones de ejemplo (en producción salen de la tabla merchants vía CONFIG_URL).
+  // Formato: { name, currency, hide:[email|comment|receipt], require:[email|comment|receipt], extra:[{id,label,type,options,required,placeholder}] }
+  var DEMO_CONFIGS = {
+    jugabet: { name: 'Jugabet', currency: 'ARS' },
+    '21com': { name: '21com', currency: 'ARS',
+      extra: [{ id: 'pais', label: 'País', type: 'select', options: ['Argentina', 'Chile', 'Perú'], required: true }] },
+    '1xbet': { name: '1xbet', currency: 'ARS', hide: ['email'], require: ['receipt'] },
+    melbet_br: { name: 'Melbet BR', currency: 'BRL',
+      extra: [{ id: 'cpf', label: 'CPF del usuario', type: 'text', placeholder: 'Opcional' }] }
+  };
+  var BASE = { name: '', currency: 'ARS', hide: [], require: [], extra: [] };
+
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var inTg = !!(tg && tg.initData);
-
   try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
   try { if (tg && tg.setHeaderColor) tg.setHeaderColor('#ffffff'); } catch (e) {}
 
-  // Contexto: merchant y, opcionalmente, un TXN para abrir la consulta directo (startapp=merchant_123456)
   var qs = new URLSearchParams(location.search);
   var hs = new URLSearchParams(location.hash.slice(1));
   var unsafe = (tg && tg.initDataUnsafe) || {};
   var user = unsafe.user || null;
   var param = unsafe.start_param || hs.get('tgWebAppStartParam') || qs.get('merchant') || qs.get('startapp') || '';
-  var pm = param.match(/^(.*)_(\d{4,})$/);
-  var deepTxn = pm ? pm[2] : '';
-  var code = pm ? pm[1] : param;
-  var merchant = code ? code.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
+  // El código es solo una ayuda visual: el merchant real lo determina n8n con initData validado.
+  var code = String(param).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+  var webToken = qs.get('t') || '';     // acceso web (fuera de Telegram): token por merchant
+  var demo = !SETTINGS.ENDPOINT;
   var handle = user ? (user.username ? '@' + user.username : (user.first_name || 'usuario')) : '@usuario';
 
-  $('#chip').textContent = 'Merchant · ' + merchant;
-  $('#mname').textContent = merchant;
-  $('#mname2').textContent = merchant;
-  $('#ctx').textContent = 'Contexto detectado: ' + (inTg ? 'Telegram' : 'navegador') +
-    ' · startapp: ' + (param || 'sin valor') +
-    ' · usuario: ' + (user ? handle : 'sin datos') +
-    ' · chat: ' + (unsafe.chat_type || 'sin datos');
+  var cfg = BASE;
+  var merchantName = code ? code.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
 
-  // ---------- Datos de ejemplo para la consulta (en producción vienen de Supabase) ----------
-  var db = Object.create(null);
-  db['191717824'] = { tk: '#123', amt: '60.000 ARS', st: 'analisis', up: 'Hoy · 09:52' };
-  db['1402288'] = { tk: '#125', amt: '25.000 ARS', st: 'recibida', up: 'Hoy · 10:05' };
-  db['1399352'] = { tk: '#118', amt: '10.000 ARS', st: 'resuelta', up: 'Ayer · 17:40' };
-  var order = ['191717824', '1402288', '1399352'];
-  var ST = {
-    recibida: { pill: 'Recibida', title: 'Transacción recibida', idx: 0,
-      text: 'Su incidencia fue recibida y está en espera de revisión.' },
-    analisis: { pill: 'En análisis', title: 'Transacción en análisis', idx: 1,
-      text: 'Soporte está revisando la transacción. Le avisaremos en el grupo de ' + merchant + ' cuando esté resuelta.' },
-    resuelta: { pill: 'Resuelta', title: 'Transacción resuelta', idx: 2,
-      text: 'Su incidencia fue resuelta.' }
-  };
+  $('#ctx').textContent = 'Contexto: ' + (inTg ? 'Telegram' : 'navegador') + ' · merchant: ' + (code || 'sin valor') +
+    ' · usuario: ' + (user ? handle : 'sin datos') + (demo ? ' · modo demostración' : '');
+  $('#proto').hidden = !demo;
+  $('#g-wrap').hidden = !demo;
 
-  // ---------- Pantallas y pestañas ----------
-  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res'), status: $('#s-status') };
+  // ---------- Pantallas ----------
+  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res') };
   function show(name) {
     Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
-    var tabsOn = name === 'form' || name === 'status';
-    $('#tabs').hidden = !tabsOn;
-    if (name === 'form') { $('#t-form').setAttribute('aria-current', 'page'); $('#t-status').removeAttribute('aria-current'); }
-    if (name === 'status') { $('#t-status').setAttribute('aria-current', 'page'); $('#t-form').removeAttribute('aria-current'); renderOpen(); }
     window.scrollTo(0, 0);
   }
-  $('#t-form').addEventListener('click', function () { show('form'); });
-  $('#t-status').addEventListener('click', function () { show('status'); });
 
-  function setInvalid(input, errEl, bad) {
+  function setInvalid(input, errEl, bad, msg) {
     input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-    errEl.hidden = !bad;
+    if (errEl) { if (msg) errEl.textContent = msg; errEl.hidden = !bad; }
+  }
+
+  // ---------- Configuración adaptable del formulario ----------
+  function sanitize(raw) {
+    var c = { name: '', currency: 'ARS', hide: [], require: [], extra: [] };
+    if (!raw || typeof raw !== 'object') return c;
+    if (typeof raw.name === 'string') c.name = raw.name.slice(0, 40);
+    if (typeof raw.currency === 'string' && /^[A-Za-z]{3,4}$/.test(raw.currency)) c.currency = raw.currency.toUpperCase();
+    var allowed = ['email', 'comment', 'receipt'];
+    ['hide', 'require'].forEach(function (k) {
+      if (Array.isArray(raw[k])) raw[k].forEach(function (f) { if (allowed.indexOf(f) > -1 && c[k].indexOf(f) < 0) c[k].push(f); });
+    });
+    var seen = {};
+    if (Array.isArray(raw.extra)) raw.extra.slice(0, 8).forEach(function (x) {
+      if (!x || typeof x.id !== 'string' || !/^[a-z][a-z0-9_]{0,30}$/.test(x.id) || seen[x.id]) return;
+      if (typeof x.label !== 'string' || !x.label) return;
+      var t = (x.type === 'select' || x.type === 'number') ? x.type : 'text';
+      var o = { id: x.id, label: x.label.slice(0, 60), type: t, required: x.required === true,
+        placeholder: typeof x.placeholder === 'string' ? x.placeholder.slice(0, 60) : '', options: [] };
+      if (t === 'select') {
+        if (!Array.isArray(x.options)) return;
+        o.options = x.options.filter(function (s) { return typeof s === 'string' && s; }).map(function (s) { return s.slice(0, 40); }).slice(0, 30);
+        if (!o.options.length) return;
+      }
+      seen[x.id] = 1; c.extra.push(o);
+    });
+    return c;
+  }
+
+  function loadConfig() {
+    if (SETTINGS.CONFIG_URL && code) {
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 4000);
+      return fetch(SETTINGS.CONFIG_URL + (SETTINGS.CONFIG_URL.indexOf('?') > -1 ? '&' : '?') + 'code=' + encodeURIComponent(code),
+        { signal: ctl ? ctl.signal : undefined })
+        .then(function (r) { if (!r.ok) throw new Error('cfg'); return r.json(); })
+        .then(function (j) { clearTimeout(timer); return sanitize(j); })
+        .catch(function () { clearTimeout(timer); return sanitize(BASE); });   // si falla: formulario base
+    }
+    return Promise.resolve(sanitize(has(DEMO_CONFIGS, code) ? DEMO_CONFIGS[code] : BASE));
+  }
+
+  var extraEls = {};   // id -> {el, err, def}
+  function applyConfig(c) {
+    cfg = c;
+    if (c.name) merchantName = c.name;
+    $('#chip').textContent = 'Merchant · ' + merchantName;
+    $('#mname').textContent = merchantName;
+    $('#amt-l').textContent = 'Monto (' + c.currency + ')';
+    var mailHidden = c.hide.indexOf('email') > -1, cmtHidden = c.hide.indexOf('comment') > -1, rcHidden = c.hide.indexOf('receipt') > -1;
+    var mailReq = c.require.indexOf('email') > -1 && !mailHidden;
+    $('#mail-wrap').hidden = mailHidden;
+    $('#mail-l').textContent = 'Correo del usuario' + (mailReq ? '' : ' (opcional)');
+    $('#mail').placeholder = '';
+    $('#amt-wrap').style.flex = mailHidden ? '1' : '0 0 140px';
+    var cmtReq = c.require.indexOf('comment') > -1 && !cmtHidden;
+    $('#cmt-wrap').hidden = cmtHidden;
+    $('#cmt-l').textContent = 'Comentario' + (cmtReq ? '' : ' (opcional)');
+    var rcReq = c.require.indexOf('receipt') > -1 && !rcHidden;
+    $('#rc-wrap').hidden = rcHidden;
+    $('#cl').textContent = 'Comprobante de pago' + (rcReq ? '' : ' (opcional)');
+
+    var box = $('#extra'); box.textContent = ''; extraEls = {};
+    c.extra.forEach(function (x) {
+      var w = document.createElement('div'); w.className = 'field';
+      var l = document.createElement('label'); l.setAttribute('for', 'x-' + x.id);
+      l.textContent = x.label + (x.required ? '' : ' (opcional)');
+      var el;
+      if (x.type === 'select') {
+        el = document.createElement('select');
+        var p = document.createElement('option'); p.value = ''; p.textContent = 'Seleccione…'; el.appendChild(p);
+        x.options.forEach(function (o) { var op = document.createElement('option'); op.value = o; op.textContent = o; el.appendChild(op); });
+      } else {
+        el = document.createElement('input'); el.type = 'text';
+        if (x.type === 'number') el.inputMode = 'decimal';
+        el.autocomplete = 'off';
+        if (x.placeholder) el.placeholder = x.placeholder;
+      }
+      el.id = 'x-' + x.id; el.setAttribute('aria-describedby', 'x-' + x.id + '-e');
+      var er = document.createElement('div'); er.className = 'err'; er.id = 'x-' + x.id + '-e'; er.hidden = true;
+      er.textContent = x.type === 'select' ? 'Seleccione una opción.' : 'Complete este campo.';
+      var clr = function () { setInvalid(el, er, false); };
+      el.addEventListener('input', clr); el.addEventListener('change', clr);
+      w.appendChild(l); w.appendChild(el); w.appendChild(er); box.appendChild(w);
+      extraEls[x.id] = { el: el, err: er, def: x };
+    });
   }
 
   // ---------- Comprobante: adjuntar, pegar y arrastrar ----------
   var file = null, thumbUrl = null;
   var fileInput = $('#file'), drop = $('#drop');
-
   function fileError(msg) { var e = $('#file-e'); e.textContent = msg || ''; e.hidden = !msg; }
   function setFile(f) {
     if (!f) return;
     if (!/^image\//.test(f.type)) { fileError('Seleccione una imagen (PNG o JPG).'); return; }
+    if (f.size > SETTINGS.MAX_MB * 1048576) { fileError('La imagen supera los ' + SETTINGS.MAX_MB + ' MB.'); return; }
     fileError('');
     if (thumbUrl) URL.revokeObjectURL(thumbUrl);
     file = f; thumbUrl = URL.createObjectURL(f);
@@ -395,9 +411,8 @@ Pegue el comprobante con Ctrl+V
   $('#pick').addEventListener('click', function () { fileInput.click(); });
   fileInput.addEventListener('change', function () { setFile(fileInput.files[0]); });
   $('#rm').addEventListener('click', clearFile);
-
   document.addEventListener('paste', function (e) {
-    if (screens.form.hidden) return;
+    if (screens.form.hidden || $('#rc-wrap').hidden) return;
     var cd = e.clipboardData; if (!cd) return;
     var f = cd.files && cd.files[0];
     if (!f && cd.items) for (var i = 0; i < cd.items.length; i++) { if (cd.items[i].kind === 'file') { f = cd.items[i].getAsFile(); break; } }
@@ -411,71 +426,131 @@ Pegue el comprobante con Ctrl+V
     if (e.dataTransfer && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
   });
 
-  // ---------- Reportar ----------
-  function fmtAmount(raw) {
-    var n = parseFloat(String(raw).replace(/\./g, '').replace(',', '.'));
-    return isNaN(n) ? raw : n.toLocaleString('es-AR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  // ---------- Envío ----------
+  function parseAmount(raw) {
+    var s = String(raw).trim().replace(/[^\d.,]/g, '');
+    if (!s) return NaN;
+    var lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+    if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    else if (lc > -1) s = /,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+    else if (ld > -1 && !/\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
+    return parseFloat(s);
   }
-
-  ['txn', 'amt'].forEach(function (id) {
-    $('#' + id).addEventListener('input', function () { setInvalid(this, $('#' + id + '-e'), false); });
+  function fmtAmount(n) {
+    return n.toLocaleString('es-AR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  }
+  ['txn', 'amt', 'mail', 'cmt'].forEach(function (id) {
+    $('#' + id).addEventListener('input', function () { setInvalid(this, $('#' + id + '-e'), false); $('#f-err').hidden = true; });
   });
 
-  var lastTxn = '';
+  var lastData = null, busy = false;
 
   $('#f').addEventListener('submit', function (e) {
     e.preventDefault();
-    var txn = $('#txn'), amt = $('#amt');
-    var badT = !norm(txn.value), badA = !amt.value.trim();
-    setInvalid(txn, $('#txn-e'), badT);
-    setInvalid(amt, $('#amt-e'), badA);
-    if (badT) { txn.focus(); return; }
-    if (badA) { amt.focus(); return; }
+    if (busy) return;
+    var txn = $('#txn'), amt = $('#amt'), mail = $('#mail'), cmt = $('#cmt');
+    var n = parseAmount(amt.value);
+    var checks = [
+      [txn, $('#txn-e'), !norm(txn.value) && !file],
+      [amt, $('#amt-e'), isNaN(n) || n <= 0]
+    ];
+    if (!$('#mail-wrap').hidden) {
+      var mv = mail.value.trim();
+      var badMail = (cfg.require.indexOf('email') > -1 && !mv) || (mv && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mv));
+      checks.push([mail, $('#mail-e'), badMail, mv ? 'Ingrese un correo válido.' : 'Ingrese el correo del usuario.']);
+    }
+    if (!$('#cmt-wrap').hidden && cfg.require.indexOf('comment') > -1) checks.push([cmt, $('#cmt-e'), !cmt.value.trim()]);
+    cfg.extra.forEach(function (x) {
+      var o = extraEls[x.id], v = o.el.value.trim();
+      var bad = (x.required && !v) || (x.type === 'number' && v && isNaN(parseAmount(v)));
+      checks.push([o.el, o.err, bad, x.type === 'number' && v ? 'Ingrese un número válido.' : null]);
+    });
+    var first = null;
+    checks.forEach(function (c) { setInvalid(c[0], c[1], c[2], c[3]); if (c[2] && !first) first = c[0]; });
+    var rcReq = cfg.require.indexOf('receipt') > -1 && !$('#rc-wrap').hidden;
+    if (rcReq && !file) { fileError('Adjunte el comprobante de pago.'); if (!first) first = $('#pick'); }
+    if (!norm(txn.value) && !file) $('#txn-e').textContent = 'Ingrese el TXN_ID o adjunte el comprobante de pago.';
+    if (first) { first.focus(); return; }
 
-    var data = { txn: norm(txn.value), amt: fmtAmount(amt.value.trim()) + ' ARS' };
-    var sim = $('input[name=sim]:checked').value;
+    var extra = {};
+    cfg.extra.forEach(function (x) { var v = extraEls[x.id].el.value.trim(); if (v) extra[x.id] = v; });
+    var data = {
+      txn: norm(txn.value) || '', amount: n, currency: cfg.currency,
+      email: $('#mail-wrap').hidden ? '' : mail.value.trim(),
+      comment: $('#cmt-wrap').hidden ? '' : cmt.value.trim(),
+      extra: extra
+    };
+    lastData = data;
+    $('#f-err').hidden = true;
     show('load');
-    setTimeout(function () { render(sim, data); }, 1400);
+    busy = true;
+    (demo ? simulate(data) : send(data)).then(function (r) { render(r, data); },
+      function () { fail(); }).then(function () { busy = false; });
   });
 
-  function render(sim, d) {
-    var ok = sim !== 'cbu';
-    var tk = '#' + (100 + Math.floor(Math.random() * 900));
+  function fail() {
+    show('form');
+    $('#f-err').textContent = 'No pudimos enviar la incidencia. Revise su conexión e inténtelo nuevamente; sus datos se conservaron.';
+    $('#f-err').hidden = false;
+  }
+
+  function simulate(d) {
+    var sim = $('input[name=sim]:checked').value;
+    return new Promise(function (res) {
+      setTimeout(function () {
+        res({ status: sim === 'ok' ? 'ok' : sim === 'dup' ? 'duplicate' : 'cbu_invalid', ticket: 'M-5162414658.' + Date.now() });
+      }, 1200);
+    });
+  }
+
+  // Contrato con n8n:  POST multipart/form-data
+  //   initData, code, token, origen, txn, amount, currency, email, comment, extra (JSON), receipt (archivo)
+  // Respuesta JSON: { status: 'ok' | 'duplicate' | 'cbu_invalid' | 'error', ticket: '#123', message?: '...' }
+  function send(d) {
+    var fd = new FormData();
+    fd.append('origen', 'miniapp');
+    fd.append('initData', inTg ? tg.initData : '');
+    fd.append('code', code); fd.append('token', webToken);
+    fd.append('txn', d.txn); fd.append('amount', String(d.amount)); fd.append('currency', d.currency);
+    fd.append('email', d.email); fd.append('comment', d.comment); fd.append('extra', JSON.stringify(d.extra));
+    if (file) fd.append('receipt', file, file.name || 'comprobante.png');
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, SETTINGS.TIMEOUT);
+    return fetch(SETTINGS.ENDPOINT, { method: 'POST', body: fd, signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { clearTimeout(timer); if (!r.ok) throw new Error('http'); return r.json(); })
+      .then(function (j) { if (!j || !j.status) throw new Error('resp'); return j; });
+  }
+
+  function render(r, d) {
+    var st = r.status;
+    if (st === 'error') { fail(); if (r.message) { $('#f-err').textContent = String(r.message).slice(0, 200); } return; }
+    var ok = st !== 'cbu_invalid';   // 'duplicate' y 'ok' devuelven ticket
+    var tk = String(r.ticket || '').slice(0, 20);
+    var amtTxt = fmtAmount(d.amount) + ' ' + d.currency;
     $('#b-ok').hidden = !ok; $('#b-no').hidden = ok;
     $('#r-card-wrap').hidden = !ok;
-    $('#g-card').hidden = sim !== 'ok';
-    $('#r-dup').hidden = sim !== 'dup';
+    $('#g-card').hidden = st !== 'ok';
+    $('#r-dup').hidden = st !== 'duplicate';
     $('#close').textContent = 'Cerrar';
-
-    if (sim === 'cbu') {
+    if (!ok) {
       $('#r-title').textContent = 'El comprobante no corresponde a Flash';
       $('#r-text').textContent = 'El CBU destinatario del comprobante no pertenece a Flash, por lo que no se generó ningún ticket. Verifique que haya adjuntado el comprobante correcto e inténtelo nuevamente.';
       $('#again').textContent = 'Cambiar comprobante';
-      $('#g-note').textContent = 'No se crea ticket ni se publica nada en el grupo.';
-      $('#g-note').hidden = false;
+      $('#g-note').textContent = 'No se crea ticket ni se publica nada en el grupo.'; $('#g-note').hidden = false;
     } else {
       $('#again').textContent = 'Reportar otra incidencia';
-      $('#r-tk').textContent = tk; $('#r-txn').textContent = d.txn; $('#r-amt').textContent = d.amt;
+      $('#r-tk').textContent = tk || '—'; $('#r-txn').textContent = d.txn || '—'; $('#r-amt').textContent = amtTxt;
       $('#r-cmp').textContent = file ? 'Recibido' : 'Sin adjunto';
-      $('#g-tk').textContent = 'Ticket ' + tk;
-      $('#g-line').textContent = 'TXN ' + d.txn + ' · ' + d.amt;
-      $('#g-who').textContent = handle;
-      lastTxn = d.txn;
-      if (sim === 'ok') {
+      $('#g-tk').textContent = 'Ticket ID: ' + tk; $('#g-line').textContent = (d.txn ? 'TXN ' + d.txn + ' · ' : '') + amtTxt; $('#g-who').textContent = handle;
+      if (st === 'ok') {
         $('#r-title').textContent = 'Recibimos su incidencia';
-        $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchant + ' y allí le avisaremos cuando esté resuelta.';
+        $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchantName + ' y allí le avisaremos cuando esté resuelta.';
         $('#g-note').hidden = true;
-        if (!has(db, d.txn)) {
-          db[d.txn] = { tk: tk, amt: d.amt, st: 'recibida',
-            up: 'Hoy · ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) };
-          order.unshift(d.txn);
-        }
       } else {
         $('#r-title').textContent = 'Esta incidencia ya está en curso';
-        $('#r-text').textContent = 'Le avisaremos en el grupo de ' + merchant + ' cuando esté resuelta.';
-        $('#r-dup').textContent = 'Ya existía un ticket abierto para la transacción ' + d.txn + '. No se creó uno nuevo.';
-        $('#g-note').textContent = 'No se publica una tarjeta nueva: se mantiene la del ticket original en el grupo.';
-        $('#g-note').hidden = false;
+        $('#r-text').textContent = 'Le avisaremos en el grupo de ' + merchantName + ' cuando esté resuelta.';
+        $('#r-dup').textContent = 'Ya existía un ticket abierto para ' + (d.txn ? 'la transacción ' + d.txn : 'este comprobante') + '. No se creó uno nuevo.';
+        $('#g-note').textContent = 'No se publica una tarjeta nueva: se mantiene la del ticket original en el grupo.'; $('#g-note').hidden = false;
       }
     }
     show('res');
@@ -483,93 +558,23 @@ Pegue el comprobante con Ctrl+V
   }
 
   function reset() {
-    $('#f').reset(); clearFile();
-    setInvalid($('#txn'), $('#txn-e'), false); setInvalid($('#amt'), $('#amt-e'), false);
+    $('#f').reset(); clearFile(); $('#f-err').hidden = true;
+    ['txn', 'amt', 'mail', 'cmt'].forEach(function (id) { setInvalid($('#' + id), $('#' + id + '-e'), false); });
+    Object.keys(extraEls).forEach(function (k) { setInvalid(extraEls[k].el, extraEls[k].err, false); });
     show('form');
   }
   $('#again').addEventListener('click', function () {
-    // Si el comprobante fue rechazado, se conservan los datos para cambiar solo el comprobante.
     if ($('#b-no').hidden) reset(); else { clearFile(); show('form'); }
   });
   $('#close').addEventListener('click', function () {
     if (inTg) { try { tg.close(); return; } catch (e) {} }
     reset();
   });
-  // El botón "Ver estado" de la tarjeta del grupo abre la consulta directo en ese ticket.
-  $('#g-btn').addEventListener('click', function () { show('status'); lookup(lastTxn); });
 
-  // ---------- Consultar estado ----------
-  var lookId = 0;
-
-  function renderOpen() {
-    var list = $('#open-list'); list.textContent = '';
-    var n = 0;
-    order.forEach(function (k) {
-      var r = db[k];
-      if (!r || r.st === 'resuelta') return;
-      n++;
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'rowb';
-      var l = document.createElement('span'); l.className = 'rl';
-      var a = document.createElement('span'); a.className = 'ra'; a.textContent = 'TXN ' + k;
-      var c = document.createElement('span'); c.className = 'rb2'; c.textContent = r.amt + ' · ' + r.tk;
-      l.appendChild(a); l.appendChild(c);
-      var p = document.createElement('span'); p.className = 'pill st-' + r.st; p.textContent = ST[r.st].pill;
-      b.appendChild(l); b.appendChild(p);
-      b.addEventListener('click', function () { lookup(k); });
-      list.appendChild(b);
-    });
-    $('#open-wrap').hidden = n === 0;
-  }
-
-  function showFound(k, r) {
-    var s = ST[r.st];
-    $('#st-title').textContent = s.title;
-    $('#st-text').textContent = s.text;
-    $('#st-tk').textContent = r.tk; $('#st-txn').textContent = k;
-    $('#st-amt').textContent = r.amt; $('#st-up').textContent = r.up;
-    var pill = $('#st-pill'); pill.textContent = s.pill; pill.className = 'pill st-' + r.st;
-    $('#st-resp').hidden = r.st !== 'resuelta';
-    var lis = document.querySelectorAll('#st-steps li');
-    for (var i = 0; i < lis.length; i++) {
-      var done = r.st === 'resuelta' || i < s.idx;
-      var cur = r.st !== 'resuelta' && i === s.idx;
-      lis[i].className = done ? 'done' : (cur ? 'cur' : '');
-      if (cur) lis[i].setAttribute('aria-current', 'step'); else lis[i].removeAttribute('aria-current');
-    }
-    $('#st-found').hidden = false;
-  }
-
-  function lookup(raw) {
-    var k = norm(raw);
-    var q = $('#q'); q.value = k;
-    var bad = !k;
-    setInvalid(q, $('#q-e'), bad);
-    $('#st-found').hidden = true; $('#st-none').hidden = true;
-    if (bad) { $('#st-load').hidden = true; lookId++; q.focus(); return; }
-    var my = ++lookId;
-    $('#st-load').hidden = false;
-    setTimeout(function () {
-      if (my !== lookId) return;
-      $('#st-load').hidden = true;
-      if (has(db, k)) { showFound(k, db[k]); }
-      else { $('#none-txn').textContent = k; $('#st-none').hidden = false; }
-    }, 700);
-  }
-
-  $('#q').addEventListener('input', function () { setInvalid(this, $('#q-e'), false); });
-  $('#qf').addEventListener('submit', function (e) { e.preventDefault(); lookup($('#q').value); });
-  Array.prototype.forEach.call(document.querySelectorAll('.chipb'), function (b) {
-    b.addEventListener('click', function () { lookup(b.getAttribute('data-txn')); });
-  });
-  $('#none-go').addEventListener('click', function () {
-    $('#txn').value = $('#q').value;
-    setInvalid($('#txn'), $('#txn-e'), false);
-    show('form');
-    $('#amt').focus();
-  });
-
-  // Enlace directo: startapp=merchant_123456 abre la consulta de ese TXN.
-  if (deepTxn) { show('status'); lookup(deepTxn); }
+  // Arranque: se muestra el formulario base enseguida y se ajusta cuando llega la configuración.
+  applyConfig(sanitize(BASE));
+  show('form');
+  loadConfig().then(applyConfig);
 })();
 </script>
 </body>
