@@ -124,6 +124,7 @@ select:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 <p class="lead">Complete los datos de la transacción. Le responderemos en el grupo de <span id="mname">DEMO</span>.</p>
 </div>
 <form id="f" novalidate class="screen" style="padding:0;gap:20px">
+<div class="stack" id="pre" style="gap:20px"></div>
 <div class="field"><label for="txn">Número de transacción (TXN_ID)</label>
 <div class="hint" id="txn-h">Si no lo tiene, adjunte el comprobante de pago.</div>
 <input id="txn" type="text" inputmode="numeric" autocomplete="off" aria-describedby="txn-e">
@@ -244,25 +245,34 @@ Pegue el comprobante con Ctrl+V
     // URL del webhook de n8n que recibe el ticket. Vacío = modo demostración (no envía nada).
     ENDPOINT: 'https://cripten.app.n8n.cloud/webhook/incidencias-form',
     // URL (GET) que devuelve la configuración del formulario de un merchant: ?code=<merchant>
-    // Vacío = usa DEMO_CONFIGS de abajo. Si falla o tarda, se usa el formulario base.
-    CONFIG_URL: '',
+    // (sale de la tabla merchants vía n8n). Vacío = usa DEMO_CONFIGS de abajo. Si falla o tarda, se usa el formulario base.
+    CONFIG_URL: 'https://cripten.app.n8n.cloud/webhook/incidencias-config',
     // Tamaño máximo del comprobante (MB)
     MAX_MB: 8,
     // Tiempo máximo de espera de n8n (ms)
     TIMEOUT: 45000
   };
 
-  // Configuraciones de ejemplo (en producción salen de la tabla merchants vía CONFIG_URL).
-  // Formato: { name, currency, hide:[email|comment|receipt], require:[email|comment|receipt], extra:[{id,label,type,options,required,placeholder}] }
+  // Configuraciones de ejemplo (solo modo demostración; en producción salen de la tabla merchants vía CONFIG_URL).
+  // Formato: { name, countries:['AR','BR'], sites:[{id,label}], site_label,
+  //            fields:{ amount|email|comment|receipt : 'required'|'optional'|'hidden' },
+  //            extra:[{id,label,type,options,required,placeholder}] }
+  // (el formato anterior con currency / hide / require sigue funcionando)
   var DEMO_CONFIGS = {
-    jugabet: { name: 'Jugabet', currency: 'ARS' },
+    jugabet: { name: 'Jugabet', countries: ['AR'] },
+    duo: { name: 'Dos sitios (prueba)', countries: ['AR'], site_label: 'Sitio',
+      sites: [{ id: 'a', label: 'Sitio A' }, { id: 'b', label: 'Sitio B' }] },
+    multipais: { name: 'Multipaís (prueba)', countries: ['AR', 'BR'] },
+    melbet_br: { name: 'Brasil (prueba)', countries: ['BR'],
+      extra: [{ id: 'cpf', label: 'CPF del usuario', type: 'text', placeholder: 'Opcional' }] },
+    flexible: { name: 'Campos opcionales (prueba)', countries: ['AR'], fields: { amount: 'optional', email: 'hidden' } },
     '21com': { name: '21com', currency: 'ARS',
       extra: [{ id: 'pais', label: 'País', type: 'select', options: ['Argentina', 'Chile', 'Perú'], required: true }] },
-    '1xbet': { name: '1xbet', currency: 'ARS', hide: ['email'], require: ['receipt'] },
-    melbet_br: { name: 'Melbet BR', currency: 'BRL',
-      extra: [{ id: 'cpf', label: 'CPF del usuario', type: 'text', placeholder: 'Opcional' }] }
+    '1xbet': { name: '1xbet', currency: 'ARS', hide: ['email'], require: ['receipt'] }
   };
-  var BASE = { name: '', currency: 'ARS', hide: [], require: [], extra: [] };
+  var COUNTRIES = { AR: { label: 'Argentina', cur: 'ARS' }, BR: { label: 'Brasil', cur: 'BRL' } };
+  var BASE = { name: '', countries: ['AR'], sites: [], site_label: 'Sitio',
+    fields: { amount: 'required', email: 'optional', comment: 'optional', receipt: 'optional' }, extra: [] };
 
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var inTg = !!(tg && tg.initData);
@@ -301,14 +311,33 @@ Pegue el comprobante con Ctrl+V
   }
 
   // ---------- Configuración adaptable del formulario ----------
+  var LEVELS = ['required', 'optional', 'hidden'];
   function sanitize(raw) {
-    var c = { name: '', currency: 'ARS', hide: [], require: [], extra: [] };
+    var c = { name: '', countries: ['AR'], sites: [], site_label: 'Sitio',
+      fields: { amount: 'required', email: 'optional', comment: 'optional', receipt: 'optional' }, extra: [] };
     if (!raw || typeof raw !== 'object') return c;
     if (typeof raw.name === 'string') c.name = raw.name.slice(0, 40);
-    if (typeof raw.currency === 'string' && /^[A-Za-z]{3,4}$/.test(raw.currency)) c.currency = raw.currency.toUpperCase();
-    var allowed = ['email', 'comment', 'receipt'];
-    ['hide', 'require'].forEach(function (k) {
-      if (Array.isArray(raw[k])) raw[k].forEach(function (f) { if (allowed.indexOf(f) > -1 && c[k].indexOf(f) < 0) c[k].push(f); });
+    if (typeof raw.site_label === 'string' && raw.site_label) c.site_label = raw.site_label.slice(0, 30);
+    // países admitidos (o, formato anterior, la moneda)
+    var cs = [];
+    if (Array.isArray(raw.countries)) raw.countries.forEach(function (k) {
+      k = String(k).toUpperCase(); if (has(COUNTRIES, k) && cs.indexOf(k) < 0) cs.push(k);
+    });
+    if (!cs.length && typeof raw.currency === 'string') cs = [/^BRL$/i.test(raw.currency) ? 'BR' : 'AR'];
+    if (cs.length) c.countries = cs;
+    // sitios (si el grupo atiende a más de un merchant)
+    var sseen = {};
+    if (Array.isArray(raw.sites)) raw.sites.slice(0, 10).forEach(function (x) {
+      if (!x || typeof x.id !== 'string' || !/^[a-z0-9_-]{1,20}$/.test(x.id) || sseen[x.id]) return;
+      if (typeof x.label !== 'string' || !x.label) return;
+      sseen[x.id] = 1; c.sites.push({ id: x.id, label: x.label.slice(0, 60) });
+    });
+    // campos: formato anterior (hide / require) y nuevo (fields)
+    var legacy = ['email', 'comment', 'receipt'];
+    if (Array.isArray(raw.require)) raw.require.forEach(function (f) { if (legacy.indexOf(f) > -1) c.fields[f] = 'required'; });
+    if (Array.isArray(raw.hide)) raw.hide.forEach(function (f) { if (legacy.indexOf(f) > -1) c.fields[f] = 'hidden'; });
+    if (raw.fields && typeof raw.fields === 'object') Object.keys(c.fields).forEach(function (k) {
+      if (typeof raw.fields[k] === 'string' && LEVELS.indexOf(raw.fields[k]) > -1) c.fields[k] = raw.fields[k];
     });
     var seen = {};
     if (Array.isArray(raw.extra)) raw.extra.slice(0, 8).forEach(function (x) {
@@ -341,22 +370,54 @@ Pegue el comprobante con Ctrl+V
   }
 
   var extraEls = {};   // id -> {el, err, def}
+  var selEls = {};     // site / country -> {el, err}
+  function curCode() {
+    var k = cfg.countries.length === 1 ? cfg.countries[0] : (selEls.country ? selEls.country.el.value : '');
+    return k && has(COUNTRIES, k) ? COUNTRIES[k].cur : '';
+  }
+  function refreshAmtLabel() {
+    var cur = curCode();
+    $('#amt-l').textContent = 'Monto' + (cur ? ' (' + cur + ')' : '') + (cfg.fields.amount === 'optional' ? ' (opcional)' : '');
+  }
+  function buildSelect(id, label, options, errText, box) {
+    var w = document.createElement('div'); w.className = 'field';
+    var l = document.createElement('label'); l.setAttribute('for', 's-' + id); l.textContent = label;
+    var el = document.createElement('select'); el.id = 's-' + id; el.setAttribute('aria-describedby', 's-' + id + '-e');
+    var p = document.createElement('option'); p.value = ''; p.textContent = 'Seleccione…'; el.appendChild(p);
+    options.forEach(function (o) { var op = document.createElement('option'); op.value = o.value; op.textContent = o.label; el.appendChild(op); });
+    var er = document.createElement('div'); er.className = 'err'; er.id = 's-' + id + '-e'; er.hidden = true; er.textContent = errText;
+    var clr = function () { setInvalid(el, er, false); };
+    el.addEventListener('change', clr);
+    w.appendChild(l); w.appendChild(el); w.appendChild(er); box.appendChild(w);
+    return { el: el, err: er };
+  }
   function applyConfig(c) {
     cfg = c;
     if (c.name) merchantName = c.name;
     $('#chip').textContent = 'Merchant · ' + merchantName;
     $('#mname').textContent = merchantName;
-    $('#amt-l').textContent = 'Monto (' + c.currency + ')';
-    var mailHidden = c.hide.indexOf('email') > -1, cmtHidden = c.hide.indexOf('comment') > -1, rcHidden = c.hide.indexOf('receipt') > -1;
-    var mailReq = c.require.indexOf('email') > -1 && !mailHidden;
+    var f = c.fields;
+    var pre = $('#pre'); pre.textContent = ''; selEls = {};
+    if (c.sites.length) selEls.site = buildSelect('site', c.site_label,
+      c.sites.map(function (x) { return { value: x.id, label: x.label }; }), 'Seleccione una opción.', pre);
+    if (c.countries.length > 1) {
+      selEls.country = buildSelect('country', 'País',
+        c.countries.map(function (k) { return { value: k, label: COUNTRIES[k].label }; }), 'Seleccione el país.', pre);
+      selEls.country.el.addEventListener('change', refreshAmtLabel);
+    }
+    var amtHidden = f.amount === 'hidden';
+    $('#amt-wrap').hidden = amtHidden;
+    refreshAmtLabel();
+    var mailHidden = f.email === 'hidden', cmtHidden = f.comment === 'hidden', rcHidden = f.receipt === 'hidden';
+    var mailReq = f.email === 'required';
     $('#mail-wrap').hidden = mailHidden;
     $('#mail-l').textContent = 'Correo del usuario' + (mailReq ? '' : ' (opcional)');
     $('#mail').placeholder = '';
     $('#amt-wrap').style.flex = mailHidden ? '1' : '0 0 140px';
-    var cmtReq = c.require.indexOf('comment') > -1 && !cmtHidden;
+    var cmtReq = f.comment === 'required';
     $('#cmt-wrap').hidden = cmtHidden;
     $('#cmt-l').textContent = 'Comentario' + (cmtReq ? '' : ' (opcional)');
-    var rcReq = c.require.indexOf('receipt') > -1 && !rcHidden;
+    var rcReq = f.receipt === 'required';
     $('#rc-wrap').hidden = rcHidden;
     $('#cl').textContent = 'Comprobante de pago' + (rcReq ? '' : ' (opcional)');
 
@@ -449,17 +510,21 @@ Pegue el comprobante con Ctrl+V
     e.preventDefault();
     if (busy) return;
     var txn = $('#txn'), amt = $('#amt'), mail = $('#mail'), cmt = $('#cmt');
-    var n = parseAmount(amt.value);
-    var checks = [
-      [txn, $('#txn-e'), !norm(txn.value) && !file],
-      [amt, $('#amt-e'), isNaN(n) || n <= 0]
-    ];
+    var f = cfg.fields;
+    var rawAmt = amt.value.trim(), n = parseAmount(rawAmt);
+    var amtBad = f.amount === 'hidden' ? false
+      : f.amount === 'required' ? (isNaN(n) || n <= 0)
+      : (rawAmt !== '' && (isNaN(n) || n <= 0));
+    var checks = [];
+    ['site', 'country'].forEach(function (k) { if (selEls[k]) checks.push([selEls[k].el, selEls[k].err, !selEls[k].el.value]); });
+    checks.push([txn, $('#txn-e'), !norm(txn.value) && !file]);
+    if (f.amount !== 'hidden') checks.push([amt, $('#amt-e'), amtBad]);
     if (!$('#mail-wrap').hidden) {
       var mv = mail.value.trim();
-      var badMail = (cfg.require.indexOf('email') > -1 && !mv) || (mv && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mv));
+      var badMail = (f.email === 'required' && !mv) || (mv && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mv));
       checks.push([mail, $('#mail-e'), badMail, mv ? 'Ingrese un correo válido.' : 'Ingrese el correo del usuario.']);
     }
-    if (!$('#cmt-wrap').hidden && cfg.require.indexOf('comment') > -1) checks.push([cmt, $('#cmt-e'), !cmt.value.trim()]);
+    if (!$('#cmt-wrap').hidden && f.comment === 'required') checks.push([cmt, $('#cmt-e'), !cmt.value.trim()]);
     cfg.extra.forEach(function (x) {
       var o = extraEls[x.id], v = o.el.value.trim();
       var bad = (x.required && !v) || (x.type === 'number' && v && isNaN(parseAmount(v)));
@@ -467,7 +532,7 @@ Pegue el comprobante con Ctrl+V
     });
     var first = null;
     checks.forEach(function (c) { setInvalid(c[0], c[1], c[2], c[3]); if (c[2] && !first) first = c[0]; });
-    var rcReq = cfg.require.indexOf('receipt') > -1 && !$('#rc-wrap').hidden;
+    var rcReq = f.receipt === 'required' && !$('#rc-wrap').hidden;
     if (rcReq && !file) { fileError('Adjunte el comprobante de pago.'); if (!first) first = $('#pick'); }
     if (!norm(txn.value) && !file) $('#txn-e').textContent = 'Ingrese el TXN_ID o adjunte el comprobante de pago.';
     if (first) { first.focus(); return; }
@@ -475,7 +540,11 @@ Pegue el comprobante con Ctrl+V
     var extra = {};
     cfg.extra.forEach(function (x) { var v = extraEls[x.id].el.value.trim(); if (v) extra[x.id] = v; });
     var data = {
-      txn: norm(txn.value) || '', amount: n, currency: cfg.currency,
+      txn: norm(txn.value) || '',
+      amount: (f.amount === 'hidden' || isNaN(n) || n <= 0) ? 0 : n,
+      currency: curCode() || 'ARS',
+      site: selEls.site ? selEls.site.el.value : '',
+      country: selEls.country ? selEls.country.el.value : cfg.countries[0],
       email: $('#mail-wrap').hidden ? '' : mail.value.trim(),
       comment: $('#cmt-wrap').hidden ? '' : cmt.value.trim(),
       extra: extra
@@ -504,14 +573,15 @@ Pegue el comprobante con Ctrl+V
   }
 
   // Contrato con n8n:  POST multipart/form-data
-  //   initData, code, token, origen, txn, amount, currency, email, comment, extra (JSON), receipt (archivo)
+  //   initData, code, token, origen, txn, amount, currency, site, country, email, comment, extra (JSON), receipt (archivo)
   // Respuesta JSON: { status: 'ok' | 'duplicate' | 'cbu_invalid' | 'error', ticket: '#123', message?: '...' }
   function send(d) {
     var fd = new FormData();
     fd.append('origen', 'miniapp');
     fd.append('initData', inTg ? tg.initData : '');
     fd.append('code', code); fd.append('token', webToken);
-    fd.append('txn', d.txn); fd.append('amount', String(d.amount)); fd.append('currency', d.currency);
+    fd.append('txn', d.txn); fd.append('amount', d.amount > 0 ? String(d.amount) : ''); fd.append('currency', d.currency);
+    fd.append('site', d.site); fd.append('country', d.country);
     fd.append('email', d.email); fd.append('comment', d.comment); fd.append('extra', JSON.stringify(d.extra));
     if (file) fd.append('receipt', file, file.name || 'comprobante.png');
     var ctl = window.AbortController ? new AbortController() : null;
@@ -526,7 +596,7 @@ Pegue el comprobante con Ctrl+V
     if (st === 'error') { fail(); if (r.message) { $('#f-err').textContent = String(r.message).slice(0, 200); } return; }
     var ok = st !== 'cbu_invalid';   // 'duplicate' y 'ok' devuelven ticket
     var tk = String(r.ticket || '').slice(0, 20);
-    var amtTxt = fmtAmount(d.amount) + ' ' + d.currency;
+    var amtTxt = d.amount > 0 ? fmtAmount(d.amount) + ' ' + d.currency : '';
     $('#b-ok').hidden = !ok; $('#b-no').hidden = ok;
     $('#r-card-wrap').hidden = !ok;
     $('#g-card').hidden = st !== 'ok';
@@ -539,9 +609,9 @@ Pegue el comprobante con Ctrl+V
       $('#g-note').textContent = 'No se crea ticket ni se publica nada en el grupo.'; $('#g-note').hidden = false;
     } else {
       $('#again').textContent = 'Reportar otra incidencia';
-      $('#r-tk').textContent = tk || '—'; $('#r-txn').textContent = d.txn || '—'; $('#r-amt').textContent = amtTxt;
+      $('#r-tk').textContent = tk || '—'; $('#r-txn').textContent = d.txn || '—'; $('#r-amt').textContent = amtTxt || '—';
       $('#r-cmp').textContent = file ? 'Recibido' : 'Sin adjunto';
-      $('#g-tk').textContent = 'Ticket ID: ' + tk; $('#g-line').textContent = (d.txn ? 'TXN ' + d.txn + ' · ' : '') + amtTxt; $('#g-who').textContent = handle;
+      $('#g-tk').textContent = 'Ticket ID: ' + tk; $('#g-line').textContent = [d.txn ? 'TXN ' + d.txn : '', amtTxt].filter(Boolean).join(' · ') || 'Comprobante adjunto'; $('#g-who').textContent = handle;
       if (st === 'ok') {
         $('#r-title').textContent = 'Recibimos su incidencia';
         $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchantName + ' y allí le avisaremos cuando esté resuelta.';
@@ -558,9 +628,10 @@ Pegue el comprobante con Ctrl+V
   }
 
   function reset() {
-    $('#f').reset(); clearFile(); $('#f-err').hidden = true;
+    $('#f').reset(); clearFile(); $('#f-err').hidden = true; refreshAmtLabel();
     ['txn', 'amt', 'mail', 'cmt'].forEach(function (id) { setInvalid($('#' + id), $('#' + id + '-e'), false); });
     Object.keys(extraEls).forEach(function (k) { setInvalid(extraEls[k].el, extraEls[k].err, false); });
+    Object.keys(selEls).forEach(function (k) { setInvalid(selEls[k].el, selEls[k].err, false); });
     show('form');
   }
   $('#again').addEventListener('click', function () {
