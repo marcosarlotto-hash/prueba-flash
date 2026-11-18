@@ -6,7 +6,9 @@
 <meta name="color-scheme" content="light">
 <title>Flash · Incidencias</title>
 <link rel="preconnect" href="https://cripten.app.n8n.cloud" crossorigin>
+<link rel="icon" href="data:,">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>try{var w=Telegram.WebApp;w.ready();w.expand();w.setHeaderColor("#FBFAF2");w.setBackgroundColor("#FBFAF2")}catch(e){}</script>
 <style>
 :root{--bg:#FBFAF2;--ink:#302d1a;--muted:#5c5833;--line:#E4E0C4;--field:#8a8559;--yellow:#fcea51;--yellow-b:#d9c63a;--beige:#E7E3C9;--soft:#F4F2E2;--err:#9b2c1f}
 *{box-sizing:border-box}
@@ -80,7 +82,7 @@ input[aria-invalid=true],select[aria-invalid=true]{border-color:var(--err)}
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="chip" id="chip">Merchant · DEMO</div></header>
+<header class="top"><div class="chip" id="chip">Request Cripten</div></header>
 
 <main>
 
@@ -230,8 +232,6 @@ input[aria-invalid=true],select[aria-invalid=true]{border-color:var(--err)}
 
   var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   var inTg = !!(tg && tg.initData);
-  try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
-  try { if (tg && tg.setHeaderColor) tg.setHeaderColor('#ffffff'); } catch (e) {}
 
   var qs = new URLSearchParams(location.search);
   var hs = new URLSearchParams(location.hash.slice(1));
@@ -365,7 +365,7 @@ input[aria-invalid=true],select[aria-invalid=true]{border-color:var(--err)}
   function applyConfig(c) {
     cfg = c;
     if (c.name) merchantName = c.name;
-    $('#chip').textContent = 'Merchant · ' + merchantName;
+    $('#chip').textContent = 'Request Cripten' + (c.name ? ' - ' + c.name : '');
     var f = c.fields;
     var pre = $('#pre'); pre.textContent = ''; selEls = {};
     if (c.sites.length) selEls.site = buildSelect('site', c.site_label,
@@ -613,10 +613,11 @@ input[aria-invalid=true],select[aria-invalid=true]{border-color:var(--err)}
   });
 
   // Arranque: se muestra el formulario base enseguida y se ajusta cuando llega la configuración.
+  var cfgReq = loadConfig();
   var cached = (SETTINGS.CONFIG_URL && code) ? readCache() : null;
   applyConfig(sanitize(cached || BASE));
   show('form');
-  loadConfig().then(function (c) {
+  cfgReq.then(function (c) {
     if (c && JSON.stringify(c) !== JSON.stringify(cfg)) applyConfig(c);   // solo se redibuja si cambió
   });
 })();
