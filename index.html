@@ -82,7 +82,9 @@ input:focus,textarea:focus,.seg:focus-within{border-color:var(--ink);box-shadow:
 .res h1{font-size:17px}.res p{color:var(--mut);font-size:13px}
 .tk{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 9px;word-break:break-all}
 .res .acts{display:flex;gap:8px;margin-top:4px}
-.res .acts .go{padding:0 18px;margin:0;height:36px;font-size:13px}
+.res .acts{width:100%;max-width:260px}
+.res .acts .go{flex:1 1 0;min-width:0;padding:0 8px;margin:0;height:36px;font-size:13px;white-space:nowrap}
+.go.sec{background:#fff}
 #demo{margin-top:auto;padding-top:8px;display:flex;gap:6px;align-items:center;font-size:11px;color:var(--mut)}
 #demo select{height:26px;font-size:11px;width:auto}
 @supports (-webkit-touch-callout:none){input[type=text],input[type=email],input[type=tel],textarea,select{font-size:16px}}
@@ -114,13 +116,13 @@ input:focus,textarea:focus,.seg:focus-within{border-color:var(--ink);box-shadow:
   <div id="err" class="hid" role="alert"></div>
   <button type="submit" class="go" id="go">Submit request</button>
 </form>
-<section class="res hid" id="res" aria-live="polite"><div class="ic" id="res-ic">✓</div><h1 id="res-h"></h1><p id="res-p"></p><div class="tk hid" id="res-t"></div><div class="acts"><button type="button" class="go" id="res-close">Close</button><button type="button" class="btn2" id="res-new">New request</button></div></section>
+<section class="res hid" id="res" aria-live="polite"><div class="ic" id="res-ic">✓</div><h1 id="res-h"></h1><p id="res-p"></p><div class="tk hid" id="res-t"></div><div class="acts"><button type="button" class="go" id="res-close">Close</button><button type="button" class="go sec" id="res-new">New request</button></div></section>
 <section class="res hid" id="fatal"><div class="ic" style="background:#C98A00">!</div><h1 id="fatal-h"></h1><p id="fatal-p"></p><div class="diag" id="fatal-d"></div><div class="acts"><button type="button" class="go" id="fatal-retry">Try again</button></div></section>
 <div id="demo" class="hid"><span>Demo</span><select id="demo-sel">
   <option value="ar">Argentina only</option><option value="br">Brazil only</option><option value="both">Argentina + Brazil</option>
   <option value="multi_ar">Multimerchant · AR</option><option value="multi_br">Multimerchant · BR</option><option value="multi_both">Multimerchant · AR + BR</option></select></div>
 </main>
-<div id="ver">v4.2</div>
+<div id="ver">v4.3</div>
 <script>
 (function () {
 'use strict';
@@ -328,7 +330,7 @@ if (!F.ENDPOINT) { /* demo mode (no backend): scenario picker */
   applyConfig(sanitize(DEMO[$('demo-sel').value])); show();
 } else {
   var cached = readCache(), shown = false;
-  var VER = 'v4.2';
+  var VER = 'v4.3';
   var diag = function (why) { return VER + ' · code: ' + (F.code || 'none') + ' · src: ' + F.src + ' · ' + why; };
   var fatal = function (h, p, why) {
     $('ld').classList.add('hid'); $('form').classList.add('hid');
