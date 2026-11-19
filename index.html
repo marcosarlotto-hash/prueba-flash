@@ -1,625 +1,328 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Flash · Incidencias</title>
+<title>Request Cripten</title>
 <link rel="preconnect" href="https://cripten.app.n8n.cloud" crossorigin>
 <link rel="icon" href="data:,">
+<script>
+/* ===== Settings (the only thing to change when moving to production) ===== */
+window.FLASH = {
+  ENDPOINT:   'https://cripten.app.n8n.cloud/webhook/incidencias-form',
+  CONFIG_URL: 'https://cripten.app.n8n.cloud/webhook/incidencias-config'
+};
+/* Start the config request right away, in parallel with the Telegram SDK download. */
+(function () {
+  var m = /[#&]tgWebAppStartParam=([^&]*)/.exec(location.hash) || /[?&](?:startapp|code)=([^&]*)/.exec(location.search), code = '';
+  try { code = m ? decodeURIComponent(m[1]).toLowerCase().replace(/[^a-z0-9_-]/g, '') : ''; } catch (e) {}
+  window.FLASH.code = code;
+  if (code && FLASH.CONFIG_URL) {
+    try { window.FLASH.cfgReq = fetch(FLASH.CONFIG_URL + '?code=' + encodeURIComponent(code)).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); } catch (e) {}
+  }
+})();
+</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>try{var w=Telegram.WebApp;w.ready();w.expand();w.setHeaderColor("#FBFAF2");w.setBackgroundColor("#FBFAF2")}catch(e){}</script>
 <style>
-:root{--bg:#FBFAF2;--ink:#302d1a;--muted:#5c5833;--line:#E4E0C4;--field:#8a8559;--yellow:#fcea51;--yellow-b:#d9c63a;--beige:#E7E3C9;--soft:#F4F2E2;--err:#9b2c1f}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:#F1EFDC;color:var(--ink);font:14px/20px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-.app{max-width:440px;min-height:100vh;margin:0 auto;background:var(--bg);display:flex;flex-direction:column}
-@media(min-width:480px){.app{box-shadow:0 0 0 1px var(--line)}}
-.top{display:flex;align-items:center;padding:10px 14px 0}
-.chip{padding:3px 10px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:12px;line-height:16px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-main{flex:1}
-.screen{display:flex;flex-direction:column;gap:10px;padding:10px 14px max(14px,env(safe-area-inset-bottom))}
-h1{margin:0;font-size:19px;line-height:24px;font-weight:800}
-.lead{margin:0;font-size:13px;line-height:18px;color:var(--muted)}
-.field{display:flex;flex-direction:column;gap:4px;min-width:0}
-.row{display:flex;gap:10px}
-label,.lbl{font-size:13px;line-height:16px;font-weight:600}
-input[type=text],input[type=email],textarea,select{width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1.5px solid var(--field);border-radius:10px}
-input[type=text],input[type=email],select{height:40px;padding:0 12px}
-textarea{height:56px;padding:8px 12px;line-height:20px;resize:none}
-@supports(-webkit-touch-callout:none){input[type=text],input[type=email],textarea,select{font-size:16px}}
-input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-input[aria-invalid=true],select[aria-invalid=true]{border-color:var(--err)}
-.err{font-size:12px;line-height:16px;color:var(--err);font-weight:600}
-.hint{font-size:12px;line-height:16px;color:var(--muted)}
-.drop{display:flex;align-items:center;gap:10px;padding:5px 5px 5px 12px;background:#fff;border:1.5px dashed var(--field);border-radius:10px}
-.drop.over{background:var(--soft);border-color:var(--ink)}
-.drop .dt{flex:1;min-width:0;font-size:13px;line-height:16px;color:var(--muted)}
-.btn{display:flex;align-items:center;justify-content:center;width:100%;height:44px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer}
-.btn.main{background:var(--yellow);border:1.5px solid var(--ink)}
-.btn.alt{background:transparent;border:1.5px solid var(--ink)}
-.btn.small{flex:none;width:auto;height:32px;padding:0 12px;font-size:13px;font-weight:600;border-radius:8px;background:var(--bg);border:1.5px solid var(--ink)}
-.file{display:flex;align-items:center;gap:10px;padding:4px 4px 4px 6px;background:#fff;border:1px solid var(--line);border-radius:10px}
-.file img{width:32px;height:32px;flex:none;object-fit:cover;border-radius:6px;background:var(--beige)}
-.file .meta{flex:1;min-width:0;display:flex;flex-direction:column}
-.file .nm{font-size:13px;line-height:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file .sz{font-size:12px;line-height:16px;color:var(--muted)}
-.x{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex:none;padding:0;background:transparent;border:0;border-radius:8px;cursor:pointer}
-.proto{display:flex;flex-direction:column;gap:8px;margin:0 14px 14px;padding:12px;border:1.5px dashed var(--field);border-radius:12px;background:var(--soft)}
-.proto .tag{font-size:11px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
-.opts{display:flex;flex-direction:column;gap:6px;border:0;margin:0;padding:0}
-.opt{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;background:#fff;border:1.5px solid var(--field);border-radius:10px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
-.opt:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.opt input{width:16px;height:16px;margin:0;accent-color:var(--yellow)}
-.center{align-items:center;text-align:center;padding-top:48px}
-.spin{width:36px;height:36px;border:3px solid var(--beige);border-top-color:var(--ink);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.spin{animation:none}}
-.badge{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px}
-.badge.ok{background:var(--yellow);border:1.5px solid var(--ink)}
-.badge.no{background:var(--beige);border:1.5px dashed var(--field)}
-.stack{display:flex;flex-direction:column;gap:8px}
-.card{display:flex;flex-direction:column;padding:0 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
-.kv{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;border-bottom:1px solid var(--line)}
-.kv:last-child{border-bottom:0}
-.kv .k{font-size:13px;color:var(--muted)}
-.kv .v{font-size:14px;font-weight:700;text-align:right;overflow-wrap:anywhere}
-.pill{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-b);font-size:12px;line-height:16px;font-weight:700;white-space:nowrap}
-.notice{padding:8px 10px;border-radius:10px;background:var(--beige);font-size:13px;line-height:18px;font-weight:600}
-.sec{margin:4px 0 0;font-size:11px;line-height:16px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
-.tg{display:flex;flex-direction:column;gap:6px;background:#F1EFDC;border-radius:12px;padding:10px}
-.msg{display:flex;flex-direction:column;gap:4px;padding:10px 12px;background:#fff;border-radius:12px}
-.msg .who{font-size:12px;line-height:16px;font-weight:700;color:#6b6740}
-.msg .t{display:flex;align-items:center;justify-content:space-between}
-.msg .tt{font-size:14px;line-height:20px;font-weight:800}
-.msg p{margin:0;font-size:13px;line-height:18px}
-.msg .mu{color:var(--muted)}
-.mention{font-weight:700;background:var(--yellow);padding:0 4px;border-radius:4px}
-.ctx{padding:8px 14px max(10px,env(safe-area-inset-bottom));font-size:11px;line-height:16px;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#FBFAF2;--ink:#2B2418;--mut:#6F6650;--line:#A39A63;--yel:#FFE45C;--err:#B3261E;--ok:#1E7B4A}
+html,body{height:100%;background:var(--bg);color:var(--ink);font:13px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:flex-end;margin-bottom:8px;flex:none}
+.chip{background:var(--yel);border:1px solid var(--ink);border-radius:999px;padding:4px 12px;font-weight:700;font-size:12px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+form{display:flex;flex-direction:column;gap:7px;min-height:0}
+.hid{display:none!important}
+.row{display:flex;gap:8px}.row>*{min-width:0}
+.f{display:flex;flex-direction:column;gap:3px}
+.f>label,.lbl{font-weight:600;font-size:12px;display:flex;align-items:baseline;gap:4px}
+.opt{font-weight:400;color:var(--mut);font-size:11px}
+input[type=text],input[type=email],input[type=tel],textarea,select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 9px;height:34px;outline:0}
+textarea{height:52px;padding:7px 9px;resize:none;line-height:1.3}
+input:focus,textarea:focus,.seg:focus-within{border-color:var(--ink);box-shadow:0 0 0 2px rgba(255,228,92,.7)}
+.bad{border-color:var(--err)!important}
+.grid{display:grid;grid-template-columns:118px 1fr;gap:7px 8px}
+.grid .email{grid-column:2}
+#cpf-f{display:none}
+[data-c=BR] #cpf-f{display:flex}
+[data-c=BR] .grid .email{grid-column:1/-1}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:34px;background:#fff}
+.seg button{flex:1;border:0;background:transparent;font:inherit;font-weight:600;color:var(--mut);cursor:pointer;padding:0 6px;white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+#merch-f{flex:1 1 0}#country-f{flex:0 0 auto}
+.drop{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:8px;background:#fff;padding:0 6px 0 9px;min-height:34px;height:34px;color:var(--mut);font-size:12px}
+.drop.over{border-color:var(--ink);background:#FFF8CF}
+.drop span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn2{border:1px solid var(--ink);background:#fff;color:var(--ink);font:inherit;font-weight:600;font-size:12px;border-radius:6px;height:24px;padding:0 9px;cursor:pointer;white-space:nowrap}
+.file{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px 6px 4px 4px;min-height:34px}
+.file .th{width:26px;height:26px;border-radius:5px;background:#EFEBD2 center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--mut);flex:none}
+.file .nm{flex:1;min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file .nm small{color:var(--mut);margin-left:4px}
+#err{color:var(--err);font-size:12px;font-weight:600;line-height:1.25}
+.go{height:40px;border:1px solid var(--ink);border-radius:10px;background:var(--yel);color:var(--ink);font:inherit;font-weight:800;font-size:14px;cursor:pointer;margin-top:2px}
+.go[disabled]{opacity:.6;cursor:default}
+.res{margin:auto 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 6px}
+.res .ic{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;background:var(--ok)}
+.res.warn .ic{background:#C98A00}
+.res h1{font-size:17px}.res p{color:var(--mut);font-size:13px}
+.tk{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 9px;word-break:break-all}
+.res .acts{display:flex;gap:8px;margin-top:4px}
+.res .acts .go{padding:0 18px;margin:0;height:36px;font-size:13px}
+#demo{margin-top:auto;padding-top:8px;display:flex;gap:6px;align-items:center;font-size:11px;color:var(--mut)}
+#demo select{height:26px;font-size:11px;width:auto}
+@supports (-webkit-touch-callout:none){input[type=text],input[type=email],input[type=tel],textarea,select{font-size:16px}}
+@media (max-height:520px){form{gap:5px}input[type=text],input[type=email],input[type=tel],.seg{height:31px}textarea{height:40px}.go{height:36px}}
 </style>
 </head>
 <body>
-<div class="app">
 <header class="top"><div class="chip" id="chip">Request Cripten</div></header>
-
-<main>
-
-<!-- Pantalla 1: formulario (adaptable por merchant) -->
-<section class="screen" id="s-form">
-<form id="f" novalidate class="screen" style="padding:0;gap:10px">
-<div class="stack" id="pre" style="gap:10px"></div>
-<div class="field"><label for="txn">Número de transacción (TXN_ID)</label>
-<input id="txn" type="text" inputmode="numeric" autocomplete="off" placeholder="Si no lo tiene, adjunte el comprobante" aria-describedby="txn-e">
-<div class="err" id="txn-e" hidden>Ingrese el número de transacción.</div></div>
-<div class="row">
-<div class="field" id="amt-wrap" style="flex:0 0 118px"><label for="amt" id="amt-l">Monto (ARS)</label>
-<input id="amt" type="text" inputmode="decimal" autocomplete="off" aria-describedby="amt-e">
-<div class="err" id="amt-e" hidden>Ingrese un monto válido.</div></div>
-<div class="field" id="mail-wrap" style="flex:1"><label for="mail" id="mail-l">Correo del usuario (opcional)</label>
-<input id="mail" type="email" inputmode="email" autocomplete="off" aria-describedby="mail-e">
-<div class="err" id="mail-e" hidden>Ingrese un correo válido.</div></div>
-</div>
-<div class="field" id="cmt-wrap"><label for="cmt" id="cmt-l">Comentario (opcional)</label>
-<textarea id="cmt" placeholder="Describa brevemente el inconveniente" aria-describedby="cmt-e"></textarea>
-<div class="err" id="cmt-e" hidden>Ingrese un comentario.</div></div>
-<div class="stack" id="extra" style="gap:10px"></div>
-<div class="field" id="rc-wrap" role="group" aria-labelledby="cl">
-<div class="lbl" id="cl">Comprobante de pago</div>
-<div class="drop" id="drop">
-<span class="dt">Pegue o arrastre la imagen</span>
-<button type="button" class="btn small" id="pick">Elegir imagen</button>
-<input id="file" type="file" accept="image/*" hidden>
-</div>
-<div class="err" id="file-e" hidden></div>
-<div class="file" id="filebox" hidden>
-<img id="thumb" alt="Vista previa del comprobante">
-<div class="meta"><div class="nm" id="fname"></div><div class="sz" id="fsize"></div></div>
-<button type="button" class="x" id="rm" aria-label="Quitar comprobante">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-</button>
-</div>
-</div>
-<div class="notice" id="f-err" role="alert" hidden></div>
-<button type="submit" class="btn main">Enviar incidencia</button>
+<main id="main">
+<form id="form" novalidate autocomplete="off" class="hid" data-c="">
+  <div class="row" id="row-top">
+    <div class="f hid" id="merch-f"><label for="merchant">Merchant</label><input type="text" id="merchant" maxlength="60" autocapitalize="words" placeholder="Merchant name"></div>
+    <div class="f hid" id="country-f"><span class="lbl" id="country-l">Country</span>
+      <div class="seg" role="group" aria-labelledby="country-l"><button type="button" data-c="AR" aria-pressed="false">Argentina</button><button type="button" data-c="BR" aria-pressed="false">Brazil</button></div></div>
+  </div>
+  <div class="f"><label for="txn">Transaction Number (TXN_ID)</label><input type="text" id="txn" maxlength="60" autocapitalize="off" spellcheck="false"></div>
+  <div class="grid">
+    <div class="f" id="amt-f"><label for="amount" id="amount-l">Amount</label><input type="text" id="amount" inputmode="decimal" placeholder="0.00"></div>
+    <div class="f" id="cpf-f"><label for="cpf">CPF</label><input type="tel" id="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+    <div class="f email"><label for="email">E-mail <span class="opt">(optional)</span></label><input type="email" id="email" maxlength="120" inputmode="email" autocapitalize="off" spellcheck="false"></div>
+  </div>
+  <div class="f"><label for="comment">Comments <span class="opt">(optional)</span></label><textarea id="comment" maxlength="1000" placeholder="Briefly describe the issue"></textarea></div>
+  <div class="f"><span class="lbl">Proof of Payment <span class="opt">(optional · image or PDF)</span></span>
+    <div class="drop" id="drop"><span id="drop-t">Paste or drop a file</span><button type="button" class="btn2" id="pick">Choose file</button></div>
+    <div class="file hid" id="filebox"><div class="th" id="th"></div><div class="nm" id="fname"></div><button type="button" class="btn2" id="rm">Remove</button></div>
+    <input type="file" id="file" accept="image/*,application/pdf,.pdf" class="hid">
+  </div>
+  <div id="err" class="hid" role="alert"></div>
+  <button type="submit" class="go" id="go">Submit request</button>
 </form>
-
-<div class="proto" id="proto">
-<div class="tag">PROTOTIPO · LOS DATOS NO SE ENVÍAN A NINGÚN LADO</div>
-<fieldset class="opts">
-<legend class="lbl" style="padding:0;margin-bottom:6px">Resultado simulado</legend>
-<label class="opt"><input type="radio" name="sim" value="ok" checked> Ticket creado (en proceso)</label>
-<label class="opt"><input type="radio" name="sim" value="cbu"> El CBU destinatario no es de Flash</label>
-<label class="opt"><input type="radio" name="sim" value="dup"> Ya existe un ticket con ese TXN_ID</label>
-</fieldset>
-</div>
-</section>
-
-<!-- Pantalla 2: verificando -->
-<section class="screen center" id="s-load" hidden>
-<div class="spin" aria-hidden="true"></div>
-<div role="status" aria-live="polite" class="stack" style="gap:4px">
-<h1>Verificando comprobante</h1>
-<p class="lead">Esto puede tardar unos segundos.</p>
-</div>
-</section>
-
-<!-- Pantalla 3: resultado del reporte -->
-<section class="screen" id="s-res" hidden>
-<div class="stack">
-<div class="badge ok" id="b-ok"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></div>
-<div class="badge no" id="b-no" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg></div>
-<h1 id="r-title" tabindex="-1" style="margin-top:2px"></h1>
-<p class="lead" id="r-text"></p>
-</div>
-
-<div class="stack" id="r-card-wrap">
-<div class="notice" id="r-dup" hidden></div>
-<div class="card">
-<div class="kv"><span class="k">Ticket</span><span class="v" id="r-tk"></span></div>
-<div class="kv"><span class="k">TXN_ID</span><span class="v" id="r-txn"></span></div>
-<div class="kv"><span class="k">Monto</span><span class="v" id="r-amt"></span></div>
-<div class="kv" id="r-cmp-row"><span class="k">Comprobante</span><span class="v" id="r-cmp"></span></div>
-<div class="kv"><span class="k">Estado</span><span class="pill">En proceso</span></div>
-</div>
-</div>
-
-<div class="stack">
-<button type="button" class="btn main" id="close">Cerrar</button>
-<button type="button" class="btn alt" id="again">Reportar otra incidencia</button>
-</div>
-
-<div class="stack" id="g-wrap">
-<div class="sec">EN EL GRUPO</div>
-<div class="tg" id="g-card">
-<div class="msg">
-<span class="who">criptenbot</span>
-<div class="t"><span class="tt" id="g-tk"></span><span class="pill">En proceso</span></div>
-<p>Se está procesando esta transacción.</p>
-<p id="g-line"></p>
-<p class="mu">Reportó: <span class="mention" id="g-who"></span></p>
-</div>
-</div>
-<div class="hint" id="g-note" hidden></div>
-</div>
-</section>
+<section class="res hid" id="res" aria-live="polite"><div class="ic" id="res-ic">✓</div><h1 id="res-h"></h1><p id="res-p"></p><div class="tk hid" id="res-t"></div><div class="acts"><button type="button" class="go" id="res-close">Close</button><button type="button" class="btn2" id="res-new">New request</button></div></section>
+<div id="demo" class="hid"><span>Demo</span><select id="demo-sel">
+  <option value="ar">Argentina only</option><option value="br">Brazil only</option><option value="both">Argentina + Brazil</option>
+  <option value="multi_ar">Multimerchant · AR</option><option value="multi_br">Multimerchant · BR</option><option value="multi_both">Multimerchant · AR + BR</option></select></div>
 </main>
-<footer class="ctx" id="ctx"></footer>
-</div>
 <script>
 (function () {
-  'use strict';
-  var $ = function (s) { return document.querySelector(s); };
-  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
-  var norm = function (s) { return String(s || '').replace(/\s+/g, ''); };
+'use strict';
+var F = window.FLASH, tg = (window.Telegram && Telegram.WebApp) || null;
+var $ = function (id) { return document.getElementById(id); };
+var COUNTRIES = { AR: { name: 'Argentina', cur: 'ARS' }, BR: { name: 'Brazil', cur: 'BRL' } };
+var MAX_BYTES = 10 * 1024 * 1024, CPF_STRICT = true;
+var DEMO = { ar: { name: 'Demo AR', countries: ['AR'] }, br: { name: 'Demo BR', countries: ['BR'] }, both: { name: 'Demo AR+BR', countries: ['AR', 'BR'] },
+  multi_ar: { name: 'Demo Multi', countries: ['AR'], multimerchant: true }, multi_br: { name: 'Demo Multi', countries: ['BR'], multimerchant: true },
+  multi_both: { name: 'Demo Multi', countries: ['AR', 'BR'], multimerchant: true } };
+var cfg = null, country = '', file = null, busy = false, lastTicket = '';
 
-  // =====================================================================
-  // CONFIGURACIÓN GENERAL  (lo único que se edita al pasar a producción)
-  // =====================================================================
-  var SETTINGS = {
-    // URL del webhook de n8n que recibe el ticket. Vacío = modo demostración (no envía nada).
-    ENDPOINT: 'https://cripten.app.n8n.cloud/webhook/incidencias-form',
-    // URL (GET) que devuelve la configuración del formulario de un merchant: ?code=<merchant>
-    // (sale de la tabla merchants vía n8n). Vacío = usa DEMO_CONFIGS de abajo. Si falla o tarda, se usa el formulario base.
-    CONFIG_URL: 'https://cripten.app.n8n.cloud/webhook/incidencias-config',
-    // Tamaño máximo del comprobante (MB)
-    MAX_MB: 8,
-    // Tiempo máximo de espera de n8n (ms)
-    TIMEOUT: 45000
-  };
+/* ---------- Config ---------- */
+function sanitize(c) {
+  c = c && typeof c === 'object' ? c : {};
+  var cs = (Array.isArray(c.countries) ? c.countries : ['AR']).map(function (x) { return String(x).toUpperCase(); })
+    .filter(function (x, i, a) { return COUNTRIES[x] && a.indexOf(x) === i; });
+  if (!cs.length) cs = ['AR'];
+  return { name: String(c.name || '').slice(0, 40), countries: cs, multi: c.multimerchant === true || c.multi === true };
+}
+var CK = 'flash_cfg_v2_' + (F.code || '');
+function readCache() { try { var o = JSON.parse(localStorage.getItem(CK)); if (o && Date.now() - o.t < 7 * 864e5) return o.c; } catch (e) {} return null; }
+function writeCache(c) { try { localStorage.setItem(CK, JSON.stringify({ t: Date.now(), c: c })); } catch (e) {} }
 
-  // Configuraciones de ejemplo (solo modo demostración; en producción salen de la tabla merchants vía CONFIG_URL).
-  // Formato: { name, countries:['AR','BR'], sites:[{id,label}], site_label,
-  //            fields:{ amount|email|comment|receipt : 'required'|'optional'|'hidden' },
-  //            extra:[{id,label,type,options,required,placeholder}] }
-  // (el formato anterior con currency / hide / require sigue funcionando)
-  var DEMO_CONFIGS = {
-    jugabet: { name: 'Jugabet', countries: ['AR'] },
-    duo: { name: 'Dos sitios (prueba)', countries: ['AR'], site_label: 'Sitio',
-      sites: [{ id: 'a', label: 'Sitio A' }, { id: 'b', label: 'Sitio B' }] },
-    multipais: { name: 'Multipaís (prueba)', countries: ['AR', 'BR'] },
-    melbet_br: { name: 'Brasil (prueba)', countries: ['BR'],
-      extra: [{ id: 'cpf', label: 'CPF del usuario', type: 'text', placeholder: 'Opcional' }] },
-    flexible: { name: 'Campos opcionales (prueba)', countries: ['AR'], fields: { amount: 'optional', email: 'hidden' } },
-    '21com': { name: '21com', currency: 'ARS',
-      extra: [{ id: 'pais', label: 'País', type: 'select', options: ['Argentina', 'Chile', 'Perú'], required: true }] },
-    '1xbet': { name: '1xbet', currency: 'ARS', hide: ['email'], require: ['receipt'] }
-  };
-  var COUNTRIES = { AR: { label: 'Argentina', cur: 'ARS' }, BR: { label: 'Brasil', cur: 'BRL' } };
-  var BASE = { name: '', countries: ['AR'], sites: [], site_label: 'Sitio',
-    fields: { amount: 'required', email: 'optional', comment: 'optional', receipt: 'optional' }, extra: [] };
+function applyConfig(c) {
+  cfg = c;
+  $('chip').textContent = 'Request Cripten' + (c.name ? ' - ' + c.name : '');
+  $('merch-f').classList.toggle('hid', !c.multi);
+  var both = c.countries.length > 1;
+  $('country-f').classList.toggle('hid', !both);
+  $('row-top').classList.toggle('hid', !c.multi && !both);
+  if (!both) setCountry(c.countries[0]); else if (c.countries.indexOf(country) < 0) setCountry('');
+  else setCountry(country);
+}
+function setCountry(c) {
+  country = c;
+  $('form').setAttribute('data-c', c);
+  var cur = c ? COUNTRIES[c].cur : '';
+  $('amount-l').textContent = cur ? 'Amount (' + cur + ')' : 'Amount';
+  [].forEach.call(document.querySelectorAll('.seg button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-c') === c)); });
+  $('country-f').classList.remove('bad');
+}
 
-  var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-  var inTg = !!(tg && tg.initData);
-
-  var qs = new URLSearchParams(location.search);
-  var hs = new URLSearchParams(location.hash.slice(1));
-  var unsafe = (tg && tg.initDataUnsafe) || {};
-  var user = unsafe.user || null;
-  var param = unsafe.start_param || hs.get('tgWebAppStartParam') || qs.get('merchant') || qs.get('startapp') || '';
-  // El código es solo una ayuda visual: el merchant real lo determina n8n con initData validado.
-  var code = String(param).toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
-  var webToken = qs.get('t') || '';     // acceso web (fuera de Telegram): token por merchant
-  var demo = !SETTINGS.ENDPOINT;
-  var handle = user ? (user.username ? '@' + user.username : (user.first_name || 'usuario')) : '@usuario';
-
-  var cfg = BASE;
-  var merchantName = code ? code.replace(/[_-]+/g, ' ').toUpperCase().slice(0, 24) : 'DEMO';
-
-  $('#ctx').textContent = 'Contexto: ' + (inTg ? 'Telegram' : 'navegador') + ' · merchant: ' + (code || 'sin valor') +
-    ' · usuario: ' + (user ? handle : 'sin datos') + (demo ? ' · modo demostración' : '');
-  $('#ctx').hidden = !demo;
-  $('#proto').hidden = !demo;
-  $('#g-wrap').hidden = !demo;
-
-  // ---------- Pantallas ----------
-  var screens = { form: $('#s-form'), load: $('#s-load'), res: $('#s-res') };
-  function show(name) {
-    Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
-    window.scrollTo(0, 0);
+/* ---------- Validation helpers ---------- */
+function validCPF(d) {
+  if (!/^\d{11}$/.test(d)) return false;
+  if (!CPF_STRICT) return true;
+  if (/^(\d)\1{10}$/.test(d)) return false;
+  for (var t = 9; t < 11; t++) {
+    var s = 0; for (var i = 0; i < t; i++) s += +d[i] * (t + 1 - i);
+    if (((s * 10) % 11) % 10 !== +d[t]) return false;
   }
+  return true;
+}
+function parseAmount(raw) {
+  var t = String(raw || '').trim().replace(/[^\d.,]/g, ''); if (!t) return NaN;
+  var lc = t.lastIndexOf(','), ld = t.lastIndexOf('.');
+  if (lc > -1 && ld > -1) t = lc > ld ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (lc > -1) t = /,\d{1,2}$/.test(t) ? t.replace(',', '.') : t.replace(/,/g, '');
+  else if (ld > -1 && !/\.\d{1,2}$/.test(t)) t = t.replace(/\./g, '');
+  return parseFloat(t);
+}
+function maskCPF(v) {
+  var d = v.replace(/\D/g, '').slice(0, 11), o = d.slice(0, 3);
+  if (d.length > 3) o += '.' + d.slice(3, 6); if (d.length > 6) o += '.' + d.slice(6, 9); if (d.length > 9) o += '-' + d.slice(9, 11);
+  return o;
+}
+function showErr(msg, el) {
+  var e = $('err'); e.textContent = msg; e.classList.remove('hid');
+  [].forEach.call(document.querySelectorAll('.bad'), function (x) { x.classList.remove('bad'); });
+  if (el) { el.classList.add('bad'); try { if (el.focus && el.tagName !== 'DIV') el.focus({ preventScroll: true }); } catch (x) {} }
+}
+function clearErr() { $('err').classList.add('hid'); [].forEach.call(document.querySelectorAll('.bad'), function (x) { x.classList.remove('bad'); }); }
 
-  function setInvalid(input, errEl, bad, msg) {
-    input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-    if (errEl) { if (msg) errEl.textContent = msg; errEl.hidden = !bad; }
-  }
-
-  // ---------- Configuración adaptable del formulario ----------
-  var LEVELS = ['required', 'optional', 'hidden'];
-  function sanitize(raw) {
-    var c = { name: '', countries: ['AR'], sites: [], site_label: 'Sitio',
-      fields: { amount: 'required', email: 'optional', comment: 'optional', receipt: 'optional' }, extra: [] };
-    if (!raw || typeof raw !== 'object') return c;
-    if (typeof raw.name === 'string') c.name = raw.name.slice(0, 40);
-    if (typeof raw.site_label === 'string' && raw.site_label) c.site_label = raw.site_label.slice(0, 30);
-    // países admitidos (o, formato anterior, la moneda)
-    var cs = [];
-    if (Array.isArray(raw.countries)) raw.countries.forEach(function (k) {
-      k = String(k).toUpperCase(); if (has(COUNTRIES, k) && cs.indexOf(k) < 0) cs.push(k);
-    });
-    if (!cs.length && typeof raw.currency === 'string') cs = [/^BRL$/i.test(raw.currency) ? 'BR' : 'AR'];
-    if (cs.length) c.countries = cs;
-    // sitios (si el grupo atiende a más de un merchant)
-    var sseen = {};
-    if (Array.isArray(raw.sites)) raw.sites.slice(0, 10).forEach(function (x) {
-      if (!x || typeof x.id !== 'string' || !/^[a-z0-9_-]{1,20}$/.test(x.id) || sseen[x.id]) return;
-      if (typeof x.label !== 'string' || !x.label) return;
-      sseen[x.id] = 1; c.sites.push({ id: x.id, label: x.label.slice(0, 60) });
-    });
-    // campos: formato anterior (hide / require) y nuevo (fields)
-    var legacy = ['email', 'comment', 'receipt'];
-    if (Array.isArray(raw.require)) raw.require.forEach(function (f) { if (legacy.indexOf(f) > -1) c.fields[f] = 'required'; });
-    if (Array.isArray(raw.hide)) raw.hide.forEach(function (f) { if (legacy.indexOf(f) > -1) c.fields[f] = 'hidden'; });
-    if (raw.fields && typeof raw.fields === 'object') Object.keys(c.fields).forEach(function (k) {
-      if (typeof raw.fields[k] === 'string' && LEVELS.indexOf(raw.fields[k]) > -1) c.fields[k] = raw.fields[k];
-    });
-    var seen = {};
-    if (Array.isArray(raw.extra)) raw.extra.slice(0, 8).forEach(function (x) {
-      if (!x || typeof x.id !== 'string' || !/^[a-z][a-z0-9_]{0,30}$/.test(x.id) || seen[x.id]) return;
-      if (typeof x.label !== 'string' || !x.label) return;
-      var t = (x.type === 'select' || x.type === 'number') ? x.type : 'text';
-      var o = { id: x.id, label: x.label.slice(0, 60), type: t, required: x.required === true,
-        placeholder: typeof x.placeholder === 'string' ? x.placeholder.slice(0, 60) : '', options: [] };
-      if (t === 'select') {
-        if (!Array.isArray(x.options)) return;
-        o.options = x.options.filter(function (s) { return typeof s === 'string' && s; }).map(function (s) { return s.slice(0, 40); }).slice(0, 30);
-        if (!o.options.length) return;
-      }
-      seen[x.id] = 1; c.extra.push(o);
-    });
-    return c;
-  }
-
-  // Caché de la última configuración conocida (solo comodidad: el servidor siempre valida).
-  var CACHE_KEY = 'flash_cfg_v1_' + code, CACHE_TTL = 7 * 864e5;
-  function readCache() {
-    try {
-      var o = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      return o && o.c && Date.now() - o.t < CACHE_TTL ? o.c : null;
-    } catch (e) { return null; }
-  }
-  function writeCache(j) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), c: j })); } catch (e) {} }
-  function clearCache() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
-
-  // Devuelve la configuración nueva, o null si no se pudo obtener (se conserva la que ya se muestra).
-  function loadConfig() {
-    if (SETTINGS.CONFIG_URL && code) {
-      var ctl = window.AbortController ? new AbortController() : null;
-      var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 5000);
-      return fetch(SETTINGS.CONFIG_URL + (SETTINGS.CONFIG_URL.indexOf('?') > -1 ? '&' : '?') + 'code=' + encodeURIComponent(code),
-        { signal: ctl ? ctl.signal : undefined })
-        .then(function (r) { if (!r.ok) throw new Error('cfg'); return r.json(); })
-        .then(function (j) {
-          clearTimeout(timer);
-          if (j && j.found === false) { clearCache(); return sanitize(BASE); }
-          writeCache(j); return sanitize(j);
-        })
-        .catch(function () { clearTimeout(timer); return null; });
-    }
-    return Promise.resolve(sanitize(has(DEMO_CONFIGS, code) ? DEMO_CONFIGS[code] : BASE));
-  }
-
-  var extraEls = {};   // id -> {el, err, def}
-  var selEls = {};     // site / country -> {el, err}
-  function curCode() {
-    var k = cfg.countries.length === 1 ? cfg.countries[0] : (selEls.country ? selEls.country.el.value : '');
-    return k && has(COUNTRIES, k) ? COUNTRIES[k].cur : '';
-  }
-  function refreshAmtLabel() {
-    var cur = curCode();
-    $('#amt-l').textContent = 'Monto' + (cur ? ' (' + cur + ')' : '') + (cfg.fields.amount === 'optional' ? ' (opcional)' : '');
-  }
-  function buildSelect(id, label, options, errText, box) {
-    var w = document.createElement('div'); w.className = 'field';
-    var l = document.createElement('label'); l.setAttribute('for', 's-' + id); l.textContent = label;
-    var el = document.createElement('select'); el.id = 's-' + id; el.setAttribute('aria-describedby', 's-' + id + '-e');
-    var p = document.createElement('option'); p.value = ''; p.textContent = 'Seleccione…'; el.appendChild(p);
-    options.forEach(function (o) { var op = document.createElement('option'); op.value = o.value; op.textContent = o.label; el.appendChild(op); });
-    var er = document.createElement('div'); er.className = 'err'; er.id = 's-' + id + '-e'; er.hidden = true; er.textContent = errText;
-    var clr = function () { setInvalid(el, er, false); };
-    el.addEventListener('change', clr);
-    w.appendChild(l); w.appendChild(el); w.appendChild(er); box.appendChild(w);
-    return { el: el, err: er };
-  }
-  function applyConfig(c) {
-    cfg = c;
-    if (c.name) merchantName = c.name;
-    $('#chip').textContent = 'Request Cripten' + (c.name ? ' - ' + c.name : '');
-    var f = c.fields;
-    var pre = $('#pre'); pre.textContent = ''; selEls = {};
-    if (c.sites.length) selEls.site = buildSelect('site', c.site_label,
-      c.sites.map(function (x) { return { value: x.id, label: x.label }; }), 'Seleccione una opción.', pre);
-    if (c.countries.length > 1) {
-      selEls.country = buildSelect('country', 'País',
-        c.countries.map(function (k) { return { value: k, label: COUNTRIES[k].label }; }), 'Seleccione el país.', pre);
-      selEls.country.el.addEventListener('change', refreshAmtLabel);
-    }
-    var amtHidden = f.amount === 'hidden';
-    $('#amt-wrap').hidden = amtHidden;
-    refreshAmtLabel();
-    var mailHidden = f.email === 'hidden', cmtHidden = f.comment === 'hidden', rcHidden = f.receipt === 'hidden';
-    var mailReq = f.email === 'required';
-    $('#mail-wrap').hidden = mailHidden;
-    $('#mail-l').textContent = 'Correo del usuario' + (mailReq ? '' : ' (opcional)');
-    $('#mail').placeholder = '';
-    $('#amt-wrap').style.flex = mailHidden ? '1' : '0 0 118px';
-    var cmtReq = f.comment === 'required';
-    $('#cmt-wrap').hidden = cmtHidden;
-    $('#cmt-l').textContent = 'Comentario' + (cmtReq ? '' : ' (opcional)');
-    var rcReq = f.receipt === 'required';
-    $('#rc-wrap').hidden = rcHidden;
-    $('#cl').textContent = 'Comprobante de pago' + (rcReq ? '' : ' (opcional)');
-
-    var box = $('#extra'); box.textContent = ''; extraEls = {};
-    c.extra.forEach(function (x) {
-      var w = document.createElement('div'); w.className = 'field';
-      var l = document.createElement('label'); l.setAttribute('for', 'x-' + x.id);
-      l.textContent = x.label + (x.required ? '' : ' (opcional)');
-      var el;
-      if (x.type === 'select') {
-        el = document.createElement('select');
-        var p = document.createElement('option'); p.value = ''; p.textContent = 'Seleccione…'; el.appendChild(p);
-        x.options.forEach(function (o) { var op = document.createElement('option'); op.value = o; op.textContent = o; el.appendChild(op); });
-      } else {
-        el = document.createElement('input'); el.type = 'text';
-        if (x.type === 'number') el.inputMode = 'decimal';
-        el.autocomplete = 'off';
-        if (x.placeholder) el.placeholder = x.placeholder;
-      }
-      el.id = 'x-' + x.id; el.setAttribute('aria-describedby', 'x-' + x.id + '-e');
-      var er = document.createElement('div'); er.className = 'err'; er.id = 'x-' + x.id + '-e'; er.hidden = true;
-      er.textContent = x.type === 'select' ? 'Seleccione una opción.' : 'Complete este campo.';
-      var clr = function () { setInvalid(el, er, false); };
-      el.addEventListener('input', clr); el.addEventListener('change', clr);
-      w.appendChild(l); w.appendChild(el); w.appendChild(er); box.appendChild(w);
-      extraEls[x.id] = { el: el, err: er, def: x };
-    });
-  }
-
-  // ---------- Comprobante: adjuntar, pegar y arrastrar ----------
-  var file = null, thumbUrl = null;
-  var fileInput = $('#file'), drop = $('#drop');
-  function fileError(msg) { var e = $('#file-e'); e.textContent = msg || ''; e.hidden = !msg; }
-  function setFile(f) {
-    if (!f) return;
-    if (!/^image\//.test(f.type)) { fileError('Seleccione una imagen (PNG o JPG).'); return; }
-    if (f.size > SETTINGS.MAX_MB * 1048576) { fileError('La imagen supera los ' + SETTINGS.MAX_MB + ' MB.'); return; }
-    fileError('');
-    if (thumbUrl) URL.revokeObjectURL(thumbUrl);
-    file = f; thumbUrl = URL.createObjectURL(f);
-    $('#thumb').src = thumbUrl;
-    $('#fname').textContent = f.name || 'comprobante.png';
-    var kb = f.size / 1024;
-    $('#fsize').textContent = kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB';
-    $('#filebox').hidden = false; drop.hidden = true;
-  }
-  function clearFile() {
-    file = null; fileInput.value = '';
-    if (thumbUrl) URL.revokeObjectURL(thumbUrl); thumbUrl = null;
-    $('#filebox').hidden = true; drop.hidden = false; fileError('');
-  }
-  $('#pick').addEventListener('click', function () { fileInput.click(); });
-  fileInput.addEventListener('change', function () { setFile(fileInput.files[0]); });
-  $('#rm').addEventListener('click', clearFile);
-  document.addEventListener('paste', function (e) {
-    if (screens.form.hidden || $('#rc-wrap').hidden) return;
-    var cd = e.clipboardData; if (!cd) return;
-    var f = cd.files && cd.files[0];
-    if (!f && cd.items) for (var i = 0; i < cd.items.length; i++) { if (cd.items[i].kind === 'file') { f = cd.items[i].getAsFile(); break; } }
-    if (f && /^image\//.test(f.type)) { e.preventDefault(); setFile(f); }
-  });
-  ['dragover', 'drop'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }); });
-  drop.addEventListener('dragover', function () { drop.classList.add('over'); });
-  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
-  drop.addEventListener('drop', function (e) {
-    drop.classList.remove('over');
-    if (e.dataTransfer && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
-  });
-
-  // ---------- Envío ----------
-  function parseAmount(raw) {
-    var s = String(raw).trim().replace(/[^\d.,]/g, '');
-    if (!s) return NaN;
-    var lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
-    if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-    else if (lc > -1) s = /,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
-    else if (ld > -1 && !/\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
-    return parseFloat(s);
-  }
-  function fmtAmount(n) {
-    return n.toLocaleString('es-AR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
-  }
-  ['txn', 'amt', 'mail', 'cmt'].forEach(function (id) {
-    $('#' + id).addEventListener('input', function () { setInvalid(this, $('#' + id + '-e'), false); $('#f-err').hidden = true; });
-  });
-
-  var lastData = null, busy = false;
-
-  $('#f').addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (busy) return;
-    var txn = $('#txn'), amt = $('#amt'), mail = $('#mail'), cmt = $('#cmt');
-    var f = cfg.fields;
-    var rawAmt = amt.value.trim(), n = parseAmount(rawAmt);
-    var amtBad = f.amount === 'hidden' ? false
-      : f.amount === 'required' ? (isNaN(n) || n <= 0)
-      : (rawAmt !== '' && (isNaN(n) || n <= 0));
-    var checks = [];
-    ['site', 'country'].forEach(function (k) { if (selEls[k]) checks.push([selEls[k].el, selEls[k].err, !selEls[k].el.value]); });
-    checks.push([txn, $('#txn-e'), !norm(txn.value) && !file]);
-    if (f.amount !== 'hidden') checks.push([amt, $('#amt-e'), amtBad]);
-    if (!$('#mail-wrap').hidden) {
-      var mv = mail.value.trim();
-      var badMail = (f.email === 'required' && !mv) || (mv && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mv));
-      checks.push([mail, $('#mail-e'), badMail, mv ? 'Ingrese un correo válido.' : 'Ingrese el correo del usuario.']);
-    }
-    if (!$('#cmt-wrap').hidden && f.comment === 'required') checks.push([cmt, $('#cmt-e'), !cmt.value.trim()]);
-    cfg.extra.forEach(function (x) {
-      var o = extraEls[x.id], v = o.el.value.trim();
-      var bad = (x.required && !v) || (x.type === 'number' && v && isNaN(parseAmount(v)));
-      checks.push([o.el, o.err, bad, x.type === 'number' && v ? 'Ingrese un número válido.' : null]);
-    });
-    var first = null;
-    checks.forEach(function (c) { setInvalid(c[0], c[1], c[2], c[3]); if (c[2] && !first) first = c[0]; });
-    var rcReq = f.receipt === 'required' && !$('#rc-wrap').hidden;
-    if (rcReq && !file) { fileError('Adjunte el comprobante de pago.'); if (!first) first = $('#pick'); }
-    if (!norm(txn.value) && !file) $('#txn-e').textContent = 'Ingrese el TXN_ID o adjunte el comprobante de pago.';
-    if (first) { first.focus(); return; }
-
-    var extra = {};
-    cfg.extra.forEach(function (x) { var v = extraEls[x.id].el.value.trim(); if (v) extra[x.id] = v; });
-    var data = {
-      txn: norm(txn.value) || '',
-      amount: (f.amount === 'hidden' || isNaN(n) || n <= 0) ? 0 : n,
-      currency: curCode() || 'ARS',
-      site: selEls.site ? selEls.site.el.value : '',
-      country: selEls.country ? selEls.country.el.value : cfg.countries[0],
-      email: $('#mail-wrap').hidden ? '' : mail.value.trim(),
-      comment: $('#cmt-wrap').hidden ? '' : cmt.value.trim(),
-      extra: extra
+/* ---------- Proof of payment (image or PDF) ---------- */
+function isPDF(f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name || ''); }
+function isImg(f) { return /^image\//.test(f.type || ''); }
+function fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+function shrink(f) { /* downscale big photos so the upload is fast */
+  return new Promise(function (res) {
+    if (!isImg(f) || /gif|svg|heic|heif/i.test(f.type) || f.size < 1.2 * 1048576) return res(f);
+    var url = URL.createObjectURL(f), im = new Image();
+    im.onload = function () {
+      try {
+        var k = Math.min(1, 1800 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+        cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        cv.toBlob(function (b) { URL.revokeObjectURL(url); res(b && b.size < f.size ? new File([b], (f.name || 'proof').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f); }, 'image/jpeg', 0.82);
+      } catch (e) { URL.revokeObjectURL(url); res(f); }
     };
-    lastData = data;
-    $('#f-err').hidden = true;
-    show('load');
-    busy = true;
-    (demo ? simulate(data) : send(data)).then(function (r) { render(r, data); },
-      function () { fail(); }).then(function () { busy = false; });
+    im.onerror = function () { URL.revokeObjectURL(url); res(f); };
+    im.src = url;
   });
-
-  function fail() {
-    show('form');
-    $('#f-err').textContent = 'No pudimos enviar la incidencia. Revise su conexión e inténtelo nuevamente; sus datos se conservaron.';
-    $('#f-err').hidden = false;
-  }
-
-  function simulate(d) {
-    var sim = $('input[name=sim]:checked').value;
-    return new Promise(function (res) {
-      setTimeout(function () {
-        res({ status: sim === 'ok' ? 'ok' : sim === 'dup' ? 'duplicate' : 'cbu_invalid', ticket: 'M-5162414658.' + Date.now() });
-      }, 1200);
-    });
-  }
-
-  // Contrato con n8n:  POST multipart/form-data
-  //   initData, code, token, origen, txn, amount, currency, site, country, email, comment, extra (JSON), receipt (archivo)
-  // Respuesta JSON: { status: 'ok' | 'duplicate' | 'cbu_invalid' | 'error', ticket: '#123', message?: '...' }
-  function send(d) {
-    var fd = new FormData();
-    fd.append('origen', 'miniapp');
-    fd.append('initData', inTg ? tg.initData : '');
-    fd.append('code', code); fd.append('token', webToken);
-    fd.append('txn', d.txn); fd.append('amount', d.amount > 0 ? String(d.amount) : ''); fd.append('currency', d.currency);
-    fd.append('site', d.site); fd.append('country', d.country);
-    fd.append('email', d.email); fd.append('comment', d.comment); fd.append('extra', JSON.stringify(d.extra));
-    if (file) fd.append('receipt', file, file.name || 'comprobante.png');
-    var ctl = window.AbortController ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, SETTINGS.TIMEOUT);
-    return fetch(SETTINGS.ENDPOINT, { method: 'POST', body: fd, signal: ctl ? ctl.signal : undefined })
-      .then(function (r) { clearTimeout(timer); if (!r.ok) throw new Error('http'); return r.json(); })
-      .then(function (j) { if (!j || !j.status) throw new Error('resp'); return j; });
-  }
-
-  function render(r, d) {
-    var st = r.status;
-    if (st === 'error') { fail(); if (r.message) { $('#f-err').textContent = String(r.message).slice(0, 200); } return; }
-    var ok = st !== 'cbu_invalid';   // 'duplicate' y 'ok' devuelven ticket
-    var tk = String(r.ticket || '').slice(0, 48);
-    var amtTxt = d.amount > 0 ? fmtAmount(d.amount) + ' ' + d.currency : '';
-    $('#b-ok').hidden = !ok; $('#b-no').hidden = ok;
-    $('#r-card-wrap').hidden = !ok;
-    $('#g-card').hidden = st !== 'ok';
-    $('#r-dup').hidden = st !== 'duplicate';
-    $('#close').textContent = 'Cerrar';
-    if (!ok) {
-      $('#r-title').textContent = 'El comprobante no corresponde a Flash';
-      $('#r-text').textContent = 'El CBU destinatario del comprobante no pertenece a Flash, por lo que no se generó ningún ticket. Verifique que haya adjuntado el comprobante correcto e inténtelo nuevamente.';
-      $('#again').textContent = 'Cambiar comprobante';
-      $('#g-note').textContent = 'No se crea ticket ni se publica nada en el grupo.'; $('#g-note').hidden = false;
-    } else {
-      $('#again').textContent = 'Reportar otra incidencia';
-      $('#r-tk').textContent = tk || '—'; $('#r-txn').textContent = d.txn || '—'; $('#r-amt').textContent = amtTxt || '—';
-      $('#r-cmp').textContent = file ? 'Recibido' : 'Sin adjunto';
-      $('#g-tk').textContent = 'Ticket ID: ' + tk; $('#g-line').textContent = [d.txn ? 'TXN ' + d.txn : '', amtTxt].filter(Boolean).join(' · ') || 'Comprobante adjunto'; $('#g-who').textContent = handle;
-      if (st === 'ok') {
-        $('#r-title').textContent = 'Recibimos su incidencia';
-        $('#r-text').textContent = 'Publicamos el seguimiento en el grupo de ' + merchantName + ' y allí le avisaremos cuando esté resuelta.';
-        $('#g-note').hidden = true;
-      } else {
-        $('#r-title').textContent = 'Esta incidencia ya está en curso';
-        $('#r-text').textContent = 'Le avisaremos en el grupo de ' + merchantName + ' cuando esté resuelta.';
-        $('#r-dup').textContent = 'Ya existía un ticket abierto para ' + (d.txn ? 'la transacción ' + d.txn : 'este comprobante') + '. No se creó uno nuevo.';
-        $('#g-note').textContent = 'No se publica una tarjeta nueva: se mantiene la del ticket original en el grupo.'; $('#g-note').hidden = false;
-      }
-    }
-    show('res');
-    $('#r-title').focus({ preventScroll: true });
-  }
-
-  function reset() {
-    $('#f').reset(); clearFile(); $('#f-err').hidden = true; refreshAmtLabel();
-    ['txn', 'amt', 'mail', 'cmt'].forEach(function (id) { setInvalid($('#' + id), $('#' + id + '-e'), false); });
-    Object.keys(extraEls).forEach(function (k) { setInvalid(extraEls[k].el, extraEls[k].err, false); });
-    Object.keys(selEls).forEach(function (k) { setInvalid(selEls[k].el, selEls[k].err, false); });
-    show('form');
-  }
-  $('#again').addEventListener('click', function () {
-    if ($('#b-no').hidden) reset(); else { clearFile(); show('form'); }
+}
+function setFile(f) {
+  if (!f) return;
+  if (!isPDF(f) && !isImg(f)) return showErr('Proof of payment must be an image or a PDF.', $('drop'));
+  if (f.size > MAX_BYTES) return showErr('The file is too large (max 10 MB).', $('drop'));
+  clearErr();
+  shrink(f).then(function (g) {
+    if (g.size > MAX_BYTES) return showErr('The file is too large (max 10 MB).', $('drop'));
+    file = g;
+    var th = $('th'); th.style.backgroundImage = ''; th.textContent = '';
+    if (isImg(g)) { var r = new FileReader(); r.onload = function () { th.style.backgroundImage = 'url("' + r.result + '")'; }; r.readAsDataURL(g); } else th.textContent = 'PDF';
+    var n = $('fname'); n.textContent = g.name || 'Pasted image'; var s = document.createElement('small'); s.textContent = fmtSize(g.size); n.appendChild(s);
+    $('drop').classList.add('hid'); $('filebox').classList.remove('hid');
   });
-  $('#close').addEventListener('click', function () {
-    if (inTg) { try { tg.close(); return; } catch (e) {} }
-    reset();
-  });
+}
+function clearFile() { file = null; $('file').value = ''; $('filebox').classList.add('hid'); $('drop').classList.remove('hid'); }
 
-  // Arranque: se muestra el formulario base enseguida y se ajusta cuando llega la configuración.
-  var cfgReq = loadConfig();
-  var cached = (SETTINGS.CONFIG_URL && code) ? readCache() : null;
-  applyConfig(sanitize(cached || BASE));
-  show('form');
-  cfgReq.then(function (c) {
-    if (c && JSON.stringify(c) !== JSON.stringify(cfg)) applyConfig(c);   // solo se redibuja si cambió
+/* ---------- Server messages (stop-gap translation until n8n answers in English) ---------- */
+var ES_EN = {
+  'No pudimos validar su sesión. Abra el formulario desde el botón del grupo en Telegram.': 'We could not validate your session. Open the form from the button in the Telegram group.',
+  'No reconocemos este grupo. Contacte a Soporte de Flash.': 'We do not recognize this group. Please contact Flash Support.',
+  'No encontramos su acceso a este grupo. Solo los miembros pueden reportar incidencias.': 'We could not find your access to this group. Only group members can submit requests.',
+  'No pudimos registrar la incidencia. Inténtelo nuevamente en unos minutos.': 'We could not register your request. Please try again in a few minutes.',
+  'Ingrese el TXN_ID.': 'Enter the Transaction Number (TXN_ID).',
+  'Ingrese un monto válido.': 'Enter a valid amount.',
+  'Ingrese un correo válido.': 'Enter a valid e-mail.',
+  'Seleccione el país.': 'Select the country.',
+  'Seleccione el sitio.': 'Select the merchant.'
+};
+function tr(m) { return ES_EN[m] || m || 'Something went wrong. Please try again.'; }
+
+/* ---------- Submit ---------- */
+function collect() {
+  var cur = country ? COUNTRIES[country].cur : '';
+  if (cfg.multi) {
+    var mv = $('merchant').value.trim();
+    if (mv.length < 2) return showErr('Enter the merchant name.', $('merchant'));
+  }
+  if (cfg.countries.length > 1 && !country) return showErr('Select the country.', $('country-f').querySelector('.seg'));
+  var txn = $('txn').value.replace(/\s+/g, '');
+  if (!txn) return showErr('Enter the Transaction Number (TXN_ID).', $('txn'));
+  var amt = parseAmount($('amount').value);
+  if (isNaN(amt) || !(amt > 0)) return showErr('Enter a valid amount.', $('amount'));
+  var cpf = '';
+  if (country === 'BR') {
+    cpf = $('cpf').value.replace(/\D/g, '');
+    if (!validCPF(cpf)) return showErr('Enter a valid CPF (11 digits).', $('cpf'));
+  }
+  var em = $('email').value.trim();
+  if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return showErr('Enter a valid e-mail.', $('email'));
+  return { txn: txn, amount: String(amt), currency: cur, country: country, cpf: cpf, merchant_name: cfg.multi ? $('merchant').value.trim() : '', email: em, comment: $('comment').value.trim() };
+}
+function submit(ev) {
+  ev.preventDefault(); if (busy) return; clearErr();
+  var d = collect(); if (!d) return;
+  var fd = new FormData();
+  fd.append('origen', 'miniapp'); fd.append('initData', (tg && tg.initData) || ''); fd.append('code', F.code || '');
+  Object.keys(d).forEach(function (k) { fd.append(k, d[k]); });
+  if (file) fd.append('receipt', file, file.name || 'proof');
+  setBusy(true);
+  if (!F.ENDPOINT) { setTimeout(function () { setBusy(false); done({ status: 'ok', ticket: 'F-1001234567890.' + Date.now() }); }, 500); return; }
+  fetch(F.ENDPOINT, { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (j) {
+    setBusy(false);
+    if (j && (j.status === 'ok' || j.status === 'duplicate')) done(j); else showErr(tr(j && j.message));
+  }).catch(function () { setBusy(false); showErr('Connection problem. Check your internet and try again.'); });
+}
+function setBusy(b) { busy = b; var g = $('go'); g.disabled = b; g.textContent = b ? 'Sending…' : 'Submit request'; }
+function done(j) {
+  lastTicket = j.ticket || '';
+  var dup = j.status === 'duplicate';
+  $('res').classList.toggle('warn', dup);
+  $('res-ic').textContent = dup ? '!' : '✓';
+  $('res-h').textContent = dup ? 'Already registered' : 'Request received';
+  $('res-p').textContent = dup ? 'This transaction was already reported. Our team is on it.' : 'We will reply in the group as soon as Support reviews it.';
+  var t = $('res-t'); t.textContent = lastTicket; t.classList.toggle('hid', !lastTicket);
+  $('form').classList.add('hid'); $('res').classList.remove('hid');
+  try { tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred(dup ? 'warning' : 'success'); } catch (e) {}
+}
+function reset() {
+  ['merchant', 'txn', 'amount', 'cpf', 'email', 'comment'].forEach(function (i) { $(i).value = ''; });
+  clearFile(); clearErr(); if (cfg && cfg.countries.length > 1) setCountry('');
+  $('res').classList.add('hid'); $('form').classList.remove('hid');
+}
+
+/* ---------- Wiring ---------- */
+$('form').addEventListener('submit', submit);
+$('cpf').addEventListener('input', function () { this.value = maskCPF(this.value); });
+$('country-f').addEventListener('click', function (e) { var b = e.target.closest('button[data-c]'); if (b) { setCountry(b.getAttribute('data-c')); clearErr(); } });
+$('pick').addEventListener('click', function () { $('file').click(); });
+$('file').addEventListener('change', function () { setFile(this.files[0]); });
+$('rm').addEventListener('click', clearFile);
+var dz = $('drop');
+['dragenter', 'dragover'].forEach(function (n) { dz.addEventListener(n, function (e) { e.preventDefault(); dz.classList.add('over'); }); });
+['dragleave', 'drop'].forEach(function (n) { dz.addEventListener(n, function (e) { e.preventDefault(); dz.classList.remove('over'); }); });
+dz.addEventListener('drop', function (e) { setFile(e.dataTransfer && e.dataTransfer.files[0]); });
+document.addEventListener('paste', function (e) {
+  var its = (e.clipboardData && e.clipboardData.items) || [];
+  for (var i = 0; i < its.length; i++) if (its[i].kind === 'file') { var f = its[i].getAsFile(); if (f) { setFile(f); e.preventDefault(); return; } }
+});
+$('res-close').addEventListener('click', function () { if (tg && tg.close) tg.close(); else reset(); });
+$('res-new').addEventListener('click', reset);
+['txn', 'amount', 'cpf', 'email', 'merchant', 'comment'].forEach(function (i) { $(i).addEventListener('input', function () { this.classList.remove('bad'); }); });
+
+/* ---------- Start ---------- */
+function show() { $('form').classList.remove('hid'); }
+if (!F.ENDPOINT) { /* demo mode (no backend): scenario picker */
+  var q = (/[?&]demo=(\w+)/.exec(location.search) || [])[1];
+  $('demo').classList.remove('hid');
+  $('demo-sel').addEventListener('change', function () { applyConfig(sanitize(DEMO[this.value])); reset(); });
+  if (q && DEMO[q]) $('demo-sel').value = q;
+  applyConfig(sanitize(DEMO[$('demo-sel').value])); show();
+} else {
+  var cached = readCache(), shown = false;
+  var first = function (c) { if (shown) return; shown = true; applyConfig(sanitize(c)); show(); };
+  if (cached) first(cached);
+  else { setTimeout(function () { first({}); }, 1500); }
+  if (F.cfgReq) F.cfgReq.then(function (c) {
+    if (!c || c.found === false) { if (c && c.found === false && !shown) { shown = true; show(); showErr('We do not recognize this group. Please contact Flash Support.'); } return; }
+    writeCache(c);
+    var n = sanitize(c);
+    if (!shown) first(c); else if (JSON.stringify(n) !== JSON.stringify(cfg)) applyConfig(n);
   });
+  else if (!cached) first({});
+}
 })();
 </script>
 </body>
