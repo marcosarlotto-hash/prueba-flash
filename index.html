@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<title>Request Cripten</title>
+<title>Support Cripten</title>
 <link rel="preconnect" href="https://cripten.app.n8n.cloud" crossorigin>
 <link rel="icon" href="data:,">
 <script>
@@ -92,12 +92,12 @@ input:focus,textarea:focus,.seg:focus-within{border-color:var(--ink);box-shadow:
 </style>
 </head>
 <body>
-<header class="top"><div class="chip" id="chip">Request Cripten</div></header>
+<header class="top"><div class="chip" id="chip">Support Cripten</div></header>
 <main id="main">
 <div id="ld" class="ld">Loading…</div>
 <form id="form" novalidate autocomplete="off" class="hid" data-c="">
   <div class="row" id="row-top">
-    <div class="f hid" id="merch-f"><label for="merchant">Merchant</label><input type="text" id="merchant" maxlength="60" autocapitalize="words" placeholder="Merchant name"></div>
+    <div class="f hid" id="merch-f"><label for="merchant">Site</label><input type="text" id="merchant" maxlength="60" autocapitalize="words" placeholder="Site name"></div>
     <div class="f hid" id="country-f"><span class="lbl" id="country-l">Country</span>
       <div class="seg" role="group" aria-labelledby="country-l"><button type="button" data-c="AR" aria-pressed="false">Argentina</button><button type="button" data-c="BR" aria-pressed="false">Brazil</button></div></div>
   </div>
@@ -120,9 +120,9 @@ input:focus,textarea:focus,.seg:focus-within{border-color:var(--ink);box-shadow:
 <section class="res hid" id="fatal"><div class="ic" style="background:#C98A00">!</div><h1 id="fatal-h"></h1><p id="fatal-p"></p><div class="diag" id="fatal-d"></div><div class="acts"><button type="button" class="go" id="fatal-retry">Try again</button></div></section>
 <div id="demo" class="hid"><span>Demo</span><select id="demo-sel">
   <option value="ar">Argentina only</option><option value="br">Brazil only</option><option value="both">Argentina + Brazil</option>
-  <option value="multi_ar">Multimerchant · AR</option><option value="multi_br">Multimerchant · BR</option><option value="multi_both">Multimerchant · AR + BR</option></select></div>
+  <option value="multi_ar">Multi-site · AR</option><option value="multi_br">Multi-site · BR</option><option value="multi_both">Multi-site · AR + BR</option></select></div>
 </main>
-<div id="ver">v4.4</div>
+<div id="ver">v4.5</div>
 <script>
 (function () {
 'use strict';
@@ -150,7 +150,7 @@ function writeCache(c) { try { localStorage.setItem(CK, JSON.stringify({ t: Date
 
 function applyConfig(c) {
   cfg = c;
-  $('chip').textContent = 'Request Cripten' + (c.name ? ' - ' + c.name : '');
+  $('chip').textContent = 'Support Cripten' + (c.name ? ' - ' + c.name : '');
   $('merch-f').classList.toggle('hid', !c.multi);
   var both = c.countries.length > 1;
   $('country-f').classList.toggle('hid', !both);
@@ -229,7 +229,7 @@ var ES_EN = {
   'Ingrese un monto válido.': 'Enter a valid amount.',
   'Ingrese un correo válido.': 'Enter a valid e-mail.',
   'Seleccione el país.': 'Select the country.',
-  'Seleccione el sitio.': 'Select the merchant.'
+  'Seleccione el sitio.': 'Select the site.'
 };
 function tr(m) { return ES_EN[m] || m || 'Something went wrong. Please try again.'; }
 
@@ -238,7 +238,7 @@ function collect() {
   var cur = country ? COUNTRIES[country].cur : '';
   if (cfg.multi) {
     var mv = $('merchant').value.trim();
-    if (mv.length < 2) return showErr('Enter the merchant name.', $('merchant'));
+    if (mv.length < 2) return showErr('Enter the site name.', $('merchant'));
   }
   if (cfg.countries.length > 1 && !country) return showErr('Select the country.', $('country-f').querySelector('.seg'));
   var txn = $('txn').value.replace(/\s+/g, '');
@@ -314,7 +314,7 @@ if (!F.ENDPOINT) { /* demo mode (no backend): scenario picker */
   applyConfig(sanitize(DEMO[$('demo-sel').value])); show();
 } else {
   var cached = readCache(), shown = false;
-  var VER = 'v4.4';
+  var VER = 'v4.5';
   var diag = function (why) { return VER + ' · code: ' + (F.code || 'none') + ' · src: ' + F.src + ' · ' + why; };
   var fatal = function (h, p, why) {
     $('ld').classList.add('hid'); $('form').classList.add('hid');
